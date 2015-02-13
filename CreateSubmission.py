@@ -19,7 +19,7 @@ probs: the 200-by-2 matrix with the first column containing integers (the trip n
   and the second column containing the probability that that trip belongs to the driver
 fmtstring: how to format the probability. By default, this argument does not need to filled in if 
   the probability is either 0 or 1. If there are also decimals, the format string needs to be '%0.xf', 
-  where f is the number of significant digits the probability needs to have
+  where x is the number of significant digits the probability needs to have
 """
 def appendProbabilities(filename, drivernr, probs, fmtstring = '%0.0f'):
     probs = np.sort(probs,axis=0)
@@ -51,6 +51,28 @@ def createSubmissionfile(infilename, outfilename):
         f_handle.write("driver_trip,prob\n")
         f_handle.write("".join(lines[1:]))    
 
+"""
+Takes a 3d matrix containing the probability matrices for every driver as slices in the 3rd dimension
+This kind of 3d matrix can be created by doing np.dstack((a1,a2,...,an)) on the result
+Then, creates a submission file, ready for submission to kaggle
+
+filename: the name of the file where the submission will go. Existing contents will be overwritten
+data: the 3d matrix containing the probabilities for every trip
+drivernrs: for every slice of data, the driver that it belongs to. For example, data[:,:,i] belongs 
+  to drivernumber drivernrs[i]. If this is not filled in, it is defaulted to data[:,:,i] belonging to
+  driver number i+1 (add one because there is no driver with number 0)
+fmtstring: how to format the probability. By default, this argument does not need to filled in if 
+  the probability is either 0 or 1. If there are also decimals, the format string needs to be '%0.xf', 
+  where x is the number of significant digits the probability needs to have
+"""
+def createSubmissionfileFrom3D(filename, data, drivernrs = None, fmtstring = '%0.0f'):
+    if drivernrs is None:
+        drivernrs = range(1,data.shape[2]+1)
+    open(filename, 'w').close()    
+    for i in range(data.shape[2]):
+        appendProbabilities(filename, drivernrs[i], data[:,:,i], fmtstring)
+    createSubmissionfile(filename, filename)
+        
 
 """
 As an example, make a submission file of three drivers, all with the same probabilities
@@ -66,4 +88,7 @@ def submissionfileExample():
     appendProbabilities(filename, 2, probs)
     appendProbabilities(filename, 3, probs)
     createSubmissionfile(filename, outfilename)
-        
+    
+    #Alternatively, create a 3d matrix and pass it to 'createSubmissionfileFrom3D'
+    threeDimData = np.dstack((probs, probs, probs))
+    createSubmissionfileFrom3D("foo4.csv", threeDimData)
