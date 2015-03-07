@@ -21,8 +21,8 @@ fmtstring: how to format the probability. By default, this argument does not nee
   the probability is either 0 or 1. If there are also decimals, the format string needs to be '%0.xf', 
   where x is the number of significant digits the probability needs to have
 """
-def appendProbabilities(filename, drivernr, probs, fmtstring = '%0.0f'):
-    probs = np.sort(probs,axis=0)
+def appendProbabilities(filename, drivernr, probs, fmtstring = '%0.10f'):
+    #probs = np.sort(probs,axis=0)
     with open(filename, 'a') as f_handle:
         f_handle.write("\n" + str(drivernr) + "_")
         np.savetxt(f_handle, probs, header = "", footer = "", delimiter= ",", fmt=['%0.0f',fmtstring], newline = "\n" + str(drivernr) + "_", comments = "")
@@ -65,7 +65,7 @@ fmtstring: how to format the probability. By default, this argument does not nee
   the probability is either 0 or 1. If there are also decimals, the format string needs to be '%0.xf', 
   where x is the number of significant digits the probability needs to have
 """
-def createSubmissionfileFrom3D(filename, data, drivernrs = None, fmtstring = '%0.0f'):
+def createSubmissionfileFrom3D(filename, data, drivernrs = None, fmtstring = '%0.10f'):
     if drivernrs is None:
         drivernrs = range(1,data.shape[2]+1)
     open(filename, 'w').close()    
