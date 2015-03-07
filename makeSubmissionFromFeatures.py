@@ -48,8 +48,8 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
     probabilities = np.zeros((numTrips, 2, numDrivers))
     for i in range(numDrivers):
         trainTrips, trainLabels = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)
-        model = learn.trainModel(trainTrips, trainLabels) #Add other parameters here to test
-        #model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1)
+        #model = learn.trainModel(trainTrips, trainLabels) #Add other parameters here to test
+        model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1)
         tempprobs = learn.predictClass(model, np.transpose(featureMatrix[:,:,i]))
         
         #moreTrips, moreLabels = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)
