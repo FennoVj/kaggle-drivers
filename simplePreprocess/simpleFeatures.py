@@ -115,6 +115,18 @@ std_product_velocity_deceleration = lambda trip: safe(trip.a[(trip.a<0)] * trip.
 proportion_speed_in_interval = lambda a,b: lambda trip: coF((trip.v>=a) & (trip.v<=b), True)
 proportion_acceleration_in_interval = lambda a,b: lambda trip: coF((trip.a>=a) & (trip.a<=b), True)
 
+#Jonah's idea: use percentiles, quartile distances, and medians
+median_velocity = lambda trip: np.median(trip.v)
+median_acceleration_total = lambda trip: np.median(trip.a)
+median_acceleration = lambda threshold: lambda trip: thF(trip.a, np.median, threshold, True)
+median_decceleration = lambda threshold: lambda trip: thF(trip.a, np.median, threshold, False)
+low_velocity = lambda trip: np.percentile(trip.v, 5)
+high_velocity = lambda trip: np.percentile(trip.v, 95)
+low_acceleration_total = lambda trip: np.percentile(trip.a, 5)
+high_acceleration_total= lambda trip: np.percentile(trip.a, 95)
+low_steering = lambda trip: np.percentile(trip.s, 5)
+high_steering = lambda trip: np.percentile(trip.s, 95)
+
 features = [total_time, total_distance, straight_distance, straightness, acceleration_to_dist, \
 mean_acceleration(0), mean_decceleration(0), total_standstill_time(0.1), turnspeed_velocity, turnspeed_acceleration,\
 mean_turnacc(0), mean_steering_right(0), mean_steering_left(0), number_acc_threshold(0.2), \
@@ -125,7 +137,9 @@ proportion_constant_speed_time(1), proportion_deceleration_time, proportion_acce
 max_product_velocity_acceleration,  min_product_velocity_acceleration, \
  mean_product_velocity_acceleration,  std_product_velocity_acceleration,  max_product_velocity_deceleration, \
   min_product_velocity_deceleration,  mean_product_velocity_deceleration,  std_product_velocity_deceleration, \
-proportion_speed_in_interval(13.8, 19.4), proportion_acceleration_in_interval(0.05,0.1)]
+proportion_speed_in_interval(13.8, 19.4), proportion_acceleration_in_interval(0.05,0.1), \
+median_velocity, median_acceleration_total, median_acceleration(0), median_decceleration(0), \
+low_velocity, high_velocity, low_acceleration_total, high_acceleration_total, low_steering, high_steering ]
 #sum_turnspeeds, sum_turnacc, mean_velocity_excluding_stop left out because of exessive zero division
 
 

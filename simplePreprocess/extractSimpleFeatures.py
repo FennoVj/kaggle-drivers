@@ -39,8 +39,9 @@ if __name__=='__main__':
     folder = argv[1]
     main(folder)
 
-        #sample usage:   
-        #parallel -j 24 python ./extractSimpleFeatures.py -- `ls ../data/drivers`
-        #rm features.zip
-        #cd output
-        #zip -r ../features.zip *
+#sample usage:   
+#parallel -j 24 python ./extractSimpleFeatures.py -- `ls ../data/drivers`
+#rm features.zip
+#cd output
+#zip -r ../features.zip *
+#cd ..

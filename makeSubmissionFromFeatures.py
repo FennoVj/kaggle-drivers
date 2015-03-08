@@ -60,11 +60,10 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
     #Train and immediately predict all trips from a single driver, one by one
     probabilities = np.zeros((numTrips, 2, numDrivers))
     for i in range(numDrivers):
-        trainTrips, trainLabels = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)
-        weights = learn.createSampleWeight(trainLabels)        
+        trainTrips, trainLabels = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)     
         
         #model = learn.trainModel(trainTrips, trainLabels) #Add other parameters here to test
-        model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1, sample_weight = weights)
+        model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1)
         tempprobs = learn.predictClass(model, np.transpose(featureMatrix[:,:,i]))
         
         probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
@@ -84,7 +83,7 @@ if __name__ == '__main__':
     featureMatrixPath = 'D:\\Documents\\Data\\MLiP\\features'
     outputSubmissionPath = 'D:\\Documents\\Data\\MLiP\\submission.csv'
     trainRealTrips = 200
-    trainFakeTrips = 1000 #Change to 200 for real thing
+    trainFakeTrips = 200 #Change to 200 for real thing
     normalize = False
     significantdigits = 5
     makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips, trainFakeTrips, normalize, significantdigits)
