@@ -19,8 +19,7 @@ def normalizeFeatureMatrix(featureMatrix):
     for i in range(numF):
         meanF = np.mean(featureMatrix[i,:,:])
         featureMatrix[i,:,:] = featureMatrix[i,:,:] / meanF
-    return featureMatrix
-    
+    return featureMatrix    
     
 def pca(featureMatrix, pcpCompNumber):
     numTrips = np.shape(featureMatrix)[1]
@@ -30,10 +29,8 @@ def pca(featureMatrix, pcpCompNumber):
         pca = PCA(n_components=pcpCompNumber)
         pca.fit(featureMatrix[:,:,i])
         #print(pca.explained_variance_ratio_)
-        newFeatureMatrix[:,:,i]=pca.components_
-        
+        newFeatureMatrix[:,:,i]=pca.components_        
     return newFeatureMatrix
-
 
 """
 Reads the featurematrix, does the machine learning, creates models, uses them to predict every trip, makes submission file
@@ -43,14 +40,15 @@ but feel free to change that line and see what happens to the results
 """
 def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, normalize = False, digits = 5):
     #Read Feature Matrix    
-    #featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
+    featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
     #ShortCut
-    #np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)
-    featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features.npy')
+    np.save('D:\\Documents\\Data\\MLiP\\featuresfourier', featureMatrix)
+    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\featuresraw.npy')
     
     if normalize:
         featureMatrix = normalizeFeatureMatrix(featureMatrix)
+    drivernrs = readFeatureMatrix.getdrivernrs(featureMatrixPath)
     print('Done Reading Feature matrix!')
     print(np.shape(featureMatrix))
     
@@ -73,7 +71,6 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
     #readFeatureMatrix.printMatlabStyle(probabilities)
     
     #Makes submission file
-    drivernrs = readFeatureMatrix.getdrivernrs(featureMatrixPath)
     fmtstring = '%0.' + `digits` + 'f'
     CreateSubmission.createSubmissionfileFrom3D(outputSubmissionPath, probabilities, drivernrs = drivernrs, fmtstring = fmtstring)
         
@@ -92,3 +89,4 @@ if __name__ == '__main__':
     zf = zipfile.ZipFile(outputSubmissionPath[:-4] + '.zip', mode='w')
     zf.write(outputSubmissionPath, 'submission.csv', compress_type=zipfile.ZIP_DEFLATED)
     zf.close()
+    print('Done creating submission!')
