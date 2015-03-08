@@ -1,19 +1,9 @@
-
 import numpy as np
 
-from pyprocessor import trip, full_data
+from simplePyprocessor import trip
+from simpleFeatures import features
 
-
-total_time = lambda trip: trip.n
-total_distance = lambda trip: trip.distance_driven
-straight_distance = lambda trip: trip.distance_straight
-straightness = lambda trip: trip.straightness
-sum_turnspeeds = lambda trip: sum(trip.s(trip.t)/trip.v(trip.t))**2
-acceleration_to_dist = lambda trip: sum(trip.a(trip.t)**2)
-
-
-
-features = [total_time, total_distance, straight_distance, straightness, sum_turnspeeds, acceleration_to_dist]
+full_data = '../data/drivers'
 
 def main(driver_id):
     from os import listdir, path
@@ -24,12 +14,11 @@ def main(driver_id):
     feats = np.empty((len(tripfiles), len(features)))
 
     #The following 5 lines are added by fenno to fix a bug in the code
-    driverfolder = tripfiles[0][:-5] #kinda dirty hack, only works if 1.csv is first file in folder
+    driverfolder = path.dirname(tripfiles[0]) + '/'
     basenames = [path.basename(f) for f in tripfiles]
     basenames = [int(f[:-4]) for f in basenames]
     basenames =  [str(f) + '.csv' for f in sorted(basenames)]
     tripfiles = [driverfolder + b for b in basenames]
-
 
     for i, file in enumerate(tripfiles):
         t = trip(file)
@@ -49,3 +38,9 @@ if __name__=='__main__':
 
     folder = argv[1]
     main(folder)
+
+        #sample usage:   
+        #parallel -j 24 python ./extractSimpleFeatures.py -- `ls ../data/drivers`
+        #rm features.zip
+        #cd fennoOutput
+        #zip -r ../features.zip *

@@ -1,4 +1,3 @@
-
 """
 Created on Sat Mar 07 13:05:04 2015
 
@@ -6,14 +5,14 @@ Created on Sat Mar 07 13:05:04 2015
 """
 import numpy as np
 
-from fennoSimplePyprocessor import trip
+from simplePyprocessor import trip
 
 """
 Threshold Feature
 Takes only elements that exceed threshold, and does an operation on them to get final feature
 """
 def thF(array, operation = np.mean, threshold = 0, greater = True):
-    values = (array > threshold) if greater else (array < threshold)
+    values = array[(array > threshold)] if greater else array[(array < threshold)]
     return operation(values) 
 """
 Count Feature
@@ -40,7 +39,8 @@ acceleration_to_dist = lambda trip: np.sum(trip.a**2)
 #Hue's ideas + enhancements by Fenno
 mean_acceleration = lambda threshold: lambda trip: thF(trip.a, np.mean, threshold, True)#sample threshold: 0
 mean_decceleration = lambda threshold: lambda trip: thF(trip.a, np.mean, threshold, False) #sample threshold: 0
-total_standstill_time = lambda threshold: lambda trip: coF(trip.v < threshold) #sample threshold: 0.1
+total_standstill_time = lambda threshold: lambda trip: coF(trip.v < threshold, False) #sample threshold: 0.1
+proportion_standstill_time =  lambda threshold: lambda trip: coF(trip.v < threshold, True) 
 
 #Fenno's ideas
 turnspeed_velocity = lambda trip: np.sum(trip.s * trip.v)
