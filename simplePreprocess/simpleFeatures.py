@@ -127,6 +127,12 @@ high_acceleration_total= lambda trip: np.percentile(trip.a, 95)
 low_steering = lambda trip: np.percentile(trip.s, 5)
 high_steering = lambda trip: np.percentile(trip.s, 95)
 
+
+#FourierTransforms
+fourierAcc = lambda coeff: lambda trip: trip.fouriera[coeff]
+fourierVec = lambda coeff: lambda trip: trip.fourierv[coeff]
+
+
 features = [total_time, total_distance, straight_distance, straightness, acceleration_to_dist, \
 mean_acceleration(0), mean_decceleration(0), total_standstill_time(0.1), turnspeed_velocity, turnspeed_acceleration,\
 mean_turnacc(0), mean_steering_right(0), mean_steering_left(0), number_acc_threshold(0.2), \
@@ -139,7 +145,10 @@ max_product_velocity_acceleration,  min_product_velocity_acceleration, \
   min_product_velocity_deceleration,  mean_product_velocity_deceleration,  std_product_velocity_deceleration, \
 proportion_speed_in_interval(13.8, 19.4), proportion_acceleration_in_interval(0.05,0.1), \
 median_velocity, median_acceleration_total, median_acceleration(0), median_decceleration(0), \
-low_velocity, high_velocity, low_acceleration_total, high_acceleration_total, low_steering, high_steering ]
+low_velocity, high_velocity, low_acceleration_total, high_acceleration_total, low_steering, high_steering,\
+ fourierAcc(0), fourierAcc(1), fourierAcc(2), fourierAcc(3), fourierAcc(4),fourierAcc(5),fourierAcc(6),\
+fourierAcc(7),fourierAcc(8),fourierAcc(9), fourierVec(0), fourierVec(1), fourierVec(2), fourierVec(3), \
+fourierVec(4), fourierVec(5), fourierVec(6), fourierVec(7), fourierVec(8), fourierVec(9) ]
 #sum_turnspeeds, sum_turnacc, mean_velocity_excluding_stop left out because of exessive zero division
 
 

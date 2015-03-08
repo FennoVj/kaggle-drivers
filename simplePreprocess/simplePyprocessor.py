@@ -9,6 +9,7 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 from csv import reader
 from os import listdir
+from scipy.fftpack import fft
 
 
 # All the drivers with all the trips (2736 x 200)
@@ -25,8 +26,11 @@ def get_tripfiles(folder):
     drivers = ['%s/%s' % (folder, driver) for driver in listdir(folder)]
     trips = [['%s/%s' % (d, t) for t in listdir(d)] for d in drivers]
     return trips
-
-
+    
+def fftfeatures(feature, maxFeatures=20):
+    y = fft(feature)
+    return np.abs(y[0:maxFeatures])
+    
 #all_files = (get_tripfiles(full_data))
 
 #training_files = array(get_tripfiles(train_data))
@@ -70,6 +74,9 @@ class trip(np.ndarray):
         self.normphi = self.phi - meanphi
         self.normX = self.rad * np.cos(self.normphi)
         self.normY = self.rad * np.sin(self.normphi)
+        
+        self.fouriera = fftfeatures(self.a, 10)
+        self.fourierv = fftfeatures(self.v, 10)
 
 
 
