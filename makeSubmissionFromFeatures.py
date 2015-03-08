@@ -7,9 +7,9 @@ Created on Wed Mar 04 16:46:08 2015
 import RandomForestClassifier as learn
 import readFeatureMatrix
 import CreateSubmission
-import os
 import numpy as np
 import zipfile
+from sklearn.decomposition import PCA
 
 """
 Make it so every feature has a mean of 1, taken over the set of all drivers
@@ -20,6 +20,22 @@ def normalizeFeatureMatrix(featureMatrix):
         meanF = np.mean(featureMatrix[i,:,:])
         featureMatrix[i,:,:] = featureMatrix[i,:,:] / meanF
     return featureMatrix
+    
+    
+def pca(featureMatrix,n_components):
+    numFeatures, numTrips, numDrivers = np.shape(featureMatrix)
+    newFeatureMatrix = np.zeros((n_components, numTrips,numDrivers))
+    #print(np.shape(newFeatureMatrix[:,:,1]))
+    for i in range(numDrivers):
+        pca = PCA(n_components=n_components)
+        pca.fit(featureMatrix[:,:,i])
+        #PCA(copy=True, n_components=3, whiten=False)
+        print(pca.explained_variance_ratio_)
+        newFeatureMatrix[:,:,i]=pca.components_
+
+#print(newFeatureMatrix)
+    return newFeatureMatrix
+
 
 """
 Reads the featurematrix, does the machine learning, creates models, uses them to predict every trip, makes submission file
@@ -32,13 +48,15 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
     featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
     #ShortCut
-    #np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)
+    np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)
     #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features.npy')
     
     if normalize:
         featureMatrix = normalizeFeatureMatrix(featureMatrix)
     print('Done Reading Feature matrix!')
     print(np.shape(featureMatrix))
+    
+    _, numTrips, numDrivers = np.shape(featureMatrix)
     #readFeatureMatrix.printMatlabStyle(featureMatrix)
     
     #Train and immediately predict all trips from a single driver, one by one
@@ -50,7 +68,7 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
         tempprobs = learn.predictClass(model, np.transpose(featureMatrix[:,:,i]))
         
         probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
-        if i%10 == 0:
+        if i%50 == 0:
             print("Done learning driver " + `i`)
     print('Done calculating probabilities!')
     #readFeatureMatrix.printMatlabStyle(probabilities)

@@ -13,6 +13,8 @@ Takes only elements that exceed threshold, and does an operation on them to get 
 """
 def thF(array, operation = np.mean, threshold = 0, greater = True):
     values = array[(array > threshold)] if greater else array[(array < threshold)]
+    if len(values) == 0:
+        values = np.array([0])
     return operation(values) 
 """
 Count Feature
@@ -22,6 +24,15 @@ by default, normalizes it, so it returns the proportion of elements that are non
 def coF(array, normalize = True):
     count = float(np.count_nonzero(array))
     return count / len(array) if normalize else count
+    
+"""
+Makes it so you can safely do operations like np.max, np.min, np.mean, etc, 
+when you don't know if the array is empty or not.
+"""
+def safe(array, operation, default = 0):
+    if len(array) == 0:
+        return default
+    return operation(array)
 
 #Used features: n, s, t, v, a
 
@@ -82,18 +93,41 @@ std_x = lambda trip: np.std(trip.normX)
 std_y = lambda trip: np.std(trip.normY)
 std_phi = lambda trip: np.std(trip.normphi)
 
+
+#Hue new features
+#proportion_constant_speed_time  sample threshold = 1 , corresponding to 3.6 km/h different
+proportion_constant_speed_time = lambda threshold: lambda trip: coF(np.abs(trip.a) <= threshold, True)   
+
+proportion_deceleration_time = lambda trip: coF(trip.a < 0, True)
+proportion_acceleration_time = lambda trip: coF(trip.a > 0, True)
+mean_velocity_excluding_stop = lambda threshold: lambda trip: sum(trip.v) / coF(trip.v > threshold, False) #sample threshold: 0.1
+
+max_product_velocity_acceleration = lambda trip: safe(trip.a[(trip.a>0)] * trip.v[(trip.a>0)], np.max)
+min_product_velocity_acceleration = lambda trip: safe(trip.a[(trip.a>0)] * trip.v[(trip.a>0)], np.min)
+mean_product_velocity_acceleration = lambda trip: safe(trip.a[(trip.a>0)] * trip.v[(trip.a>0)], np.mean)
+std_product_velocity_acceleration = lambda trip: safe(trip.a[(trip.a>0)] * trip.v[(trip.a>0)], np.std)
+min_product_velocity_deceleration = lambda trip: safe(trip.a[(trip.a<0)] * trip.v[(trip.a<0)], np.min)
+max_product_velocity_deceleration = lambda trip: safe(trip.a[(trip.a<0)] * trip.v[(trip.a<0)], np.max)
+mean_product_velocity_deceleration = lambda trip: safe(trip.a[(trip.a<0)] * trip.v[(trip.a<0)], np.mean)
+std_product_velocity_deceleration = lambda trip: safe(trip.a[(trip.a<0)] * trip.v[(trip.a<0)], np.std)
+
+#% of time in speed interval  [a, b]  13.8 m/s ~ 50 km/h, [19.4  70]  [33.3  120]
+proportion_speed_in_interval = lambda a,b: lambda trip: coF((trip.v>=a) & (trip.v<=b), True)
+proportion_acceleration_in_interval = lambda a,b: lambda trip: coF((trip.a>=a) & (trip.a<=b), True)
+
 features = [total_time, total_distance, straight_distance, straightness, acceleration_to_dist, \
 mean_acceleration(0), mean_decceleration(0), total_standstill_time(0.1), turnspeed_velocity, turnspeed_acceleration,\
 mean_turnacc(0), mean_steering_right(0), mean_steering_left(0), number_acc_threshold(0.2), \
 number_dec_threshold(0.2), number_steering_threshold(0.05), max_velocity, min_velocity, max_acceleration, min_acceleration, \
 max_steering, min_steering, mean_steering, mean_acceleration_total, mean_velocity, \
-std_velocity, std_acceleration, std_steering, mean_rad, std_rad, mean_x, mean_y, std_x, std_y, std_phi]
-#sum_turnspeeds, sum_turnacc left out
+std_velocity, std_acceleration, std_steering, mean_rad, std_rad, mean_x, mean_y, std_x, std_y, std_phi, \
+proportion_constant_speed_time(1), proportion_deceleration_time, proportion_acceleration_time, \
+max_product_velocity_acceleration,  min_product_velocity_acceleration, \
+ mean_product_velocity_acceleration,  std_product_velocity_acceleration,  max_product_velocity_deceleration, \
+  min_product_velocity_deceleration,  mean_product_velocity_deceleration,  std_product_velocity_deceleration, \
+proportion_speed_in_interval(13.8, 19.4), proportion_acceleration_in_interval(0.05,0.1)]
+#sum_turnspeeds, sum_turnacc, mean_velocity_excluding_stop left out because of exessive zero division
 
-#features, leaving out some of the most contrived ones, to see if better performance
-#features = [total_time, total_distance, straight_distance, straightness, mean_acceleration_total, \
-#mean_velocity, mean_velocity_th(10), mean_acceleration_th(0.2), max_velocity, max_acceleration, max_steering, min_steering, \
-#mean_acceleration(0), mean_decceleration(0), mean_steering, mean_turnspeed_velocity(0), total_standstill_time(0.1)]
 
 
 
@@ -103,4 +137,5 @@ if __name__=='__main__':
     samplefeatures = [total_distance,  total_standstill_time(0.1)]
     output = [float(f(trip)) for f in samplefeatures]
     print(output)
+    print(len(features))
     #print(np.sort(trip.a))

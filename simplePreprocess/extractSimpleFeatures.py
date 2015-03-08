@@ -42,5 +42,5 @@ if __name__=='__main__':
         #sample usage:   
         #parallel -j 24 python ./extractSimpleFeatures.py -- `ls ../data/drivers`
         #rm features.zip
-        #cd fennoOutput
+        #cd output
         #zip -r ../features.zip *

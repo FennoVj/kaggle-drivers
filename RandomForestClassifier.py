@@ -33,6 +33,27 @@ def getTrips(featureMatrix, mainDriverId, numReal = 200, numFake=200):
     fakeTrips = np.array([featureMatrix[:, randi[i], randj[i]] for i in range(numFake)]) 
     fakeTrips = np.reshape(fakeTrips, (numFake, numFea)) 
     return np.vstack((mainTrips, fakeTrips)), np.concatenate((np.ones(numReal), np.zeros(numFake)))
+
+"""
+Creates a sampleweight array by giving the samples in class 1 and samples in class 0
+a predetermined weight. Ideally, the sum of the weights is equal for class 0 and 1.
+If a weight is equal to None, it is set so that the total weight of that class equals 
+the total weight of the other class. If both are set to None, that is impossible,
+so oneval will be set to 1.0, and zeroval to None.
+"""
+def createSampleWeight(labels, oneval = None, zeroval = None):
+    if oneval is None and zeroval is None:
+        oneval = 1.0
+    if oneval is None:
+        zeroweight = np.count_nonzero(labels == 0) * zeroval
+        oneval = np.count_nonzero(labels == 1) / zeroweight
+    if zeroval is None:
+        oneweight = np.count_nonzero(labels == 1) * oneval
+        zeroval = np.count_nonzero(labels == 0) / oneweight
+    samples = len(labels)    
+    scores = np.zeros(samples)
+    scores[labels == 1] = oneval
+    scores[labels == 0] = zeroval
     
 
 """
