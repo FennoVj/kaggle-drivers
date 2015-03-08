@@ -20,8 +20,8 @@ Counts all nonzero (or true) elements, and returns the number of them
 by default, normalizes it, so it returns the proportion of elements that are nonzero (or true)
 """
 def coF(array, normalize = True):
-    count = np.count_nonzero(array)
-    return float(count) / len(array) if normalize else count
+    count = float(np.count_nonzero(array))
+    return count / len(array) if normalize else count
 
 #Used features: n, s, t, v, a
 

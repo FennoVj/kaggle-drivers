@@ -29,11 +29,7 @@ but feel free to change that line and see what happens to the results
 """
 def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, normalize = False, digits = 5):
     #Read Feature Matrix    
-    numDrivers = len(os.listdir(featureMatrixPath))
-    firstdriver = os.path.join(featureMatrixPath, os.listdir(featureMatrixPath)[0])
-    numTrips = readFeatureMatrix.getNumTrips(firstdriver)
-    numFeatures = readFeatureMatrix.getNumFeatures(firstdriver)
-    featureMatrix = readFeatureMatrix.makeFeatureMatrix(featureMatrixPath, numFeatures, numTrips, numDrivers)
+    featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
     #ShortCut
     #np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)

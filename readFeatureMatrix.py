@@ -27,7 +27,7 @@ def makeFeatureMatrix(tdatpath, numFeatures, numTrips, numDrivers, fixnan = True
         if fixnan:
             features = np.nan_to_num(features)
         featurematrix[:,:,i] = features
-    return featurematrix   
+    return featurematrix
 
 #number of ',' in first line + 1 
 def getNumFeatures(file):
@@ -42,6 +42,14 @@ def getNumTrips(file):
             pass
     return i + 1
     
+def totalFeatureMatrix(featureMatrixPath):
+    numDrivers = len(os.listdir(featureMatrixPath))
+    firstdriver = os.path.join(featureMatrixPath, os.listdir(featureMatrixPath)[0])
+    numTrips = getNumTrips(firstdriver)
+    numFeatures = getNumFeatures(firstdriver)
+    featureMatrix = makeFeatureMatrix(featureMatrixPath, numFeatures, numTrips, numDrivers)	
+    return featureMatrix	
+
 def printMatlabStyle(threedmatrix):
     for i in range(np.shape(threedmatrix)[2]):
         print 'matrix[:,:,' + `i` + '] = '
