@@ -35,8 +35,9 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
     numFeatures = readFeatureMatrix.getNumFeatures(firstdriver)
     featureMatrix = readFeatureMatrix.makeFeatureMatrix(featureMatrixPath, numFeatures, numTrips, numDrivers)
 
-    #featureMatrix = featureMatrix[:,0:20,:] #take outobviously 
-    #numTrips = 20
+    #ShortCut
+    #np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)
+    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features.npy')
     
     if normalize:
         featureMatrix = normalizeFeatureMatrix(featureMatrix)
@@ -52,13 +53,8 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
         model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1)
         tempprobs = learn.predictClass(model, np.transpose(featureMatrix[:,:,i]))
         
-        #moreTrips, moreLabels = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)
-        #moreprobs = learn.predictClass(model, moreTrips)
-        #print(learn.evaluation(moreprobs, moreLabels, 0.7))
-        #print("probabilities["+ `i` + "]:" )
-        #print tempprobs
         probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
-        if i%100 == 0:
+        if i%10 == 0:
             print("Done learning driver " + `i`)
     print('Done calculating probabilities!')
     #readFeatureMatrix.printMatlabStyle(probabilities)
@@ -71,12 +67,12 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
 if __name__ == '__main__':
     #print(np.vstack((np.arange(5), np.array([0.3,0.2,0.1,0.8,0.9]))))
     
-    featureMatrixPath = 'D:\\Documents\\Data\\MLiP\\output'
+    featureMatrixPath = 'D:\\Documents\\Data\\MLiP\\features'
     outputSubmissionPath = 'D:\\Documents\\Data\\MLiP\\submission.csv'
     trainRealTrips = 200
     trainFakeTrips = 200 #Change to 200 for real thing
     normalize = False
-    significantdigits = 8
+    significantdigits = 5
     makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips, trainFakeTrips, normalize, significantdigits)
     
     #zip the submission, makes it ~3x smaller
