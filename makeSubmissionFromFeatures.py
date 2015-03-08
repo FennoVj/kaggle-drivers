@@ -22,18 +22,16 @@ def normalizeFeatureMatrix(featureMatrix):
     return featureMatrix
     
     
-def pca(featureMatrix,n_components):
-    numFeatures, numTrips, numDrivers = np.shape(featureMatrix)
-    newFeatureMatrix = np.zeros((n_components, numTrips,numDrivers))
-    #print(np.shape(newFeatureMatrix[:,:,1]))
+def pca(featureMatrix, pcpCompNumber):
+    numTrips = np.shape(featureMatrix)[1]
+    numDrivers = np.shape(featureMatrix)[2]
+    newFeatureMatrix = np.zeros((pcpCompNumber, numTrips, numDrivers))
     for i in range(numDrivers):
-        pca = PCA(n_components=n_components)
+        pca = PCA(n_components=pcpCompNumber)
         pca.fit(featureMatrix[:,:,i])
-        #PCA(copy=True, n_components=3, whiten=False)
-        print(pca.explained_variance_ratio_)
+        #print(pca.explained_variance_ratio_)
         newFeatureMatrix[:,:,i]=pca.components_
-
-#print(newFeatureMatrix)
+        
     return newFeatureMatrix
 
 
@@ -45,11 +43,11 @@ but feel free to change that line and see what happens to the results
 """
 def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, normalize = False, digits = 5):
     #Read Feature Matrix    
-    featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
+    #featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
     #ShortCut
-    np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)
-    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features.npy')
+    #np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)
+    featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features.npy')
     
     if normalize:
         featureMatrix = normalizeFeatureMatrix(featureMatrix)
@@ -63,8 +61,10 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
     probabilities = np.zeros((numTrips, 2, numDrivers))
     for i in range(numDrivers):
         trainTrips, trainLabels = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)
+        weights = learn.createSampleWeight(trainLabels)        
+        
         #model = learn.trainModel(trainTrips, trainLabels) #Add other parameters here to test
-        model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1)
+        model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1, sample_weight = weights)
         tempprobs = learn.predictClass(model, np.transpose(featureMatrix[:,:,i]))
         
         probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     featureMatrixPath = 'D:\\Documents\\Data\\MLiP\\features'
     outputSubmissionPath = 'D:\\Documents\\Data\\MLiP\\submission.csv'
     trainRealTrips = 200
-    trainFakeTrips = 200 #Change to 200 for real thing
+    trainFakeTrips = 1000 #Change to 200 for real thing
     normalize = False
     significantdigits = 5
     makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips, trainFakeTrips, normalize, significantdigits)

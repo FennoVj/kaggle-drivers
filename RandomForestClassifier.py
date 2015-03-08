@@ -54,6 +54,7 @@ def createSampleWeight(labels, oneval = None, zeroval = None):
     scores = np.zeros(samples)
     scores[labels == 1] = oneval
     scores[labels == 0] = zeroval
+    return scores
     
 
 """
