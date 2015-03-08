@@ -8,6 +8,7 @@ Created on Thu Mar 05 16:40:31 2015
 import numpy as np
 import sklearn.metrics as skm
 import sklearn.ensemble as ske
+import sklearn.cross_validation as skcv
 
 """
 Selects some trips from a main driver, and some trips from other drivers from the feature matrix, and labels them. There is also the option to exclude trips from the main driver, to prevent duplicate picking. The labels are done such that the main driver trips are labeled as 1, and the 'fake' trips are labeled as 0.
@@ -46,6 +47,26 @@ def evaluation(probabilities, labels, threshold):
     precision = skm.precision_score(labels, probabilities, average=None) 
     recall = skm.recall_score(labels, probabilities, average=None)
     return precision, recall
+    
+"""
+Calulates average accuracy by doing crossvalidation
+Should be faster than submitting to kaggle, because you can do it more than 5 times a day
+also, it only does 100 drivers by default, instead of 2500+. 
+The downside is that the score will be less accurate than kaggle's score, because 
+we don't actually know what the fake trips are
+"""
+def crossValidation(featureMatrix, model = None, numdrivers = 100, folds = 5, numReal = 200, numFake = 200):
+    #foldsize = int(numdrivers / folds)
+    numD = np.shape(featureMatrix)[2]
+    if model is None:
+        model = ske.RandomForestClassifier(n_estimators = 50, n_jobs = -1, criterion = 'gini', max_features = 'auto')
+    testDrivers = np.random.choice(np.arange(numD), numdrivers, False)
+    score = 0
+    for i in testDrivers:
+        trips, labels = getTrips(featureMatrix, i, numReal, numFake)
+        result = skcv.cross_val_score(model, trips, labels)
+        score = score + np.divide(np.mean(result), numdrivers)
+    return score
 
 """
 Trains a model using logistic regression, given some features, and their true class.
