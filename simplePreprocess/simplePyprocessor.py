@@ -6,7 +6,7 @@ Created on Sat Mar 07 14:22:35 2015
 """
 
 import numpy as np
-from scipy.interpolate import UnivariateSpline
+#from scipy.interpolate import UnivariateSpline
 from csv import reader
 from os import listdir
 from scipy.fftpack import fft
@@ -37,7 +37,7 @@ def fftfeatures(feature, maxFeatures=20):
 
 class trip(np.ndarray):
 
-    def __new__(cls, filename, precision=0, **kwargs):
+    def __new__(cls, filename, precision=1, **kwargs):
         with open(filename) as tripfile:
             head = tripfile.readline()
             trip = np.array(list(reader(tripfile)), dtype=float)
@@ -46,44 +46,39 @@ class trip(np.ndarray):
     def __init__(self, filename, **kwargs):
 
         #spline stuff
-        k = 3
-        s = 1
+        #k = 3
+        #s = 1
         X, Y = self.T
         self.n = self.shape[0]
         self.t = np.arange(self.n)
-        self.x = UnivariateSpline(self.t, X, k=k, s=s*self.n)
-        self.y = UnivariateSpline(self.t, Y, k=k, s=s*self.n)
-        self.dx = self.x.derivative(1)
-        self.dy = self.y.derivative(1)
-        self.ddx = self.x.derivative(2)
-        self.ddy = self.y.derivative(2)
-        self.dv = np.hypot(self.ddx(self.t), self.ddy(self.t))
+        self.x = X
+        self.y = Y
+        self.dx = np.diff(self.x)
+        self.dy = np.diff(self.y)        
 
         #The actual features
-        self.v = np.hypot(self.dx(self.t), self.dy(self.t))
-        self.o = np.arctan2(self.dy(self.t), self.dx(self.t))
-        self.fv = lambda t: np.hypot(self.dx(t), self.dy(t))
-        self.fo = lambda t: np.arctan2(self.dy(t), self.dx(t))
-        self.s = self.fo(self.t+.5)-self.fo(self.t-.5)
-        self.a = self.fv(self.t+.5)-self.fv(self.t-.5)
+        self.v = np.hypot(self.dx, self.dy)
+        self.v = np.hstack((self.v[0], self.v))
+        self.o = np.arctan2(self.dy, self.dx)
+        self.s = np.diff(self.o)
+        self.s = np.hstack((self.s[0], self.s, self.s[-1]))
+        self.a = np.diff(self.v)
+        self.a = np.hstack((self.a[0], self.a))
         
         #polar coordinates
-        self.rad = np.hypot(self.x(self.t), self.y(self.t))
-        self.phi = np.arctan2(self.y(self.t), self.x(self.t))
+        self.rad = np.hypot(self.x, self.y)
+        self.phi = np.arctan2(self.y, self.x)
         meanphi = np.mean(self.phi)
         self.normphi = self.phi - meanphi
         self.normX = self.rad * np.cos(self.normphi)
         self.normY = self.rad * np.sin(self.normphi)
         
-        self.fouriera = fftfeatures(self.a, 10)
-        self.fourierv = fftfeatures(self.v, 10)
-
-
+        self.dist = np.hypot(np.diff(self.x), np.diff(self.y))
 
 if __name__ == '__main__':
 #examples:
     total_time = lambda trip: trip.n
-    total_distance = lambda trip: np.sum(hypot(np.diff(trip[:,0]), np.diff(trip[:,1])))
+    total_distance = lambda trip: np.sum(np.hypot(np.diff(trip[:,0]), np.diff(trip[:,1])))
     straight_distance = lambda trip: np.hypot(trip[-1,0], trip[-1,1])
     straightness = lambda trip: straight_distance(trip) / total_distance(trip)
     sum_turnspeeds = lambda trip: np.sum(trip.s/trip.v)**2

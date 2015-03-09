@@ -33,19 +33,34 @@ def safe(array, operation, default = 0):
     if len(array) == 0:
         return default
     return operation(array)
-
+    
+"""
+Makes array of the lengths of streaks of True
+example: [True, True, True, False, False, True, True, False] would return [3,2]
+input array has to be boolean
+you can also count False streaks by setting value argument
+"""
+def countStreak(array, value=True):
+    firstval = array[0]
+    streaklengths = np.diff(np.where(np.hstack((True, np.diff(array), True))))[0]
+    if firstval == value:
+        return streaklengths[::2]
+    return streaklengths[1::2]
+    
 #Used features: n, s, t, v, a
 
 #np.seterr(divide = 'ignore')
 
 #Basic Features
 total_time = lambda trip: trip.n
-total_distance = lambda trip: np.sum(np.hypot(np.diff(trip[:,0]), np.diff(trip[:,1])))
+total_distance = lambda trip: np.sum(trip.dist)
 straight_distance = lambda trip: np.hypot(trip[-1,0], trip[-1,1])
 straightness = lambda trip: np.divide(float(straight_distance(trip)), float(total_distance(trip)))
 
 sum_turnspeeds = lambda trip: np.sum(trip.s/trip.v)
 acceleration_to_dist = lambda trip: np.sum(trip.a**2)
+
+dist_excl_hyperjump = lambda maxdist: lambda trip: float(np.sum(trip.dist[trip.dist < maxdist])) #sample: 80
 
 #Hue's ideas + enhancements by Fenno
 mean_acceleration = lambda threshold: lambda trip: thF(trip.a, np.mean, threshold, True)#sample threshold: 0
@@ -73,7 +88,7 @@ min_acceleration = lambda trip: np.min(trip.a)
 max_steering = lambda trip: np.max(trip.s)
 min_steering = lambda trip: np.min(trip.s)
 
-#new
+#means +std because obvious
 mean_steering = lambda trip: np.mean(trip.s)
 mean_acceleration_total = lambda trip: np.mean(trip.a)
 mean_velocity = lambda trip: np.mean(trip.v)
@@ -120,18 +135,24 @@ median_velocity = lambda trip: np.median(trip.v)
 median_acceleration_total = lambda trip: np.median(trip.a)
 median_acceleration = lambda threshold: lambda trip: thF(trip.a, np.median, threshold, True)
 median_decceleration = lambda threshold: lambda trip: thF(trip.a, np.median, threshold, False)
-low_velocity = lambda trip: np.percentile(trip.v, 5)
-high_velocity = lambda trip: np.percentile(trip.v, 95)
-low_acceleration_total = lambda trip: np.percentile(trip.a, 5)
-high_acceleration_total= lambda trip: np.percentile(trip.a, 95)
-low_steering = lambda trip: np.percentile(trip.s, 5)
-high_steering = lambda trip: np.percentile(trip.s, 95)
-
+velocity_percentile = lambda percentile: lambda trip: np.percentile(trip.v, percentile)
+acceleration_percentile = lambda percentile: lambda trip: np.percentile(trip.a, percentile)
+steering_percentile = lambda percentile: lambda trip: np.percentile(trip.s, percentile)
+velocity_quartdist = lambda trip: np.percentile(trip.v, 75) - np.percentile(trip.v, 25)
+steering_quartdist = lambda trip: np.percentile(trip.a, 75) - np.percentile(trip.s, 25)
+acceleration_quartdist = lambda trip: np.percentile(trip.s, 75) - np.percentile(trip.a, 25)
 
 #FourierTransforms
 fourierAcc = lambda coeff: lambda trip: trip.fouriera[coeff]
 fourierVec = lambda coeff: lambda trip: trip.fourierv[coeff]
 
+#Counting the number of stops/acceleration/decceleration events
+number_stops = lambda threshold: lambda trip: len(countStreak(trip.v < threshold)) #sample threshold: 0.1
+number_accel = lambda threshold: lambda trip: len(countStreak(trip.a > threshold)) #sample: 0.2
+number_decel = lambda threshold: lambda trip: len(countStreak(trip.a < threshold))
+num_accel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.a > threshold)), dist_excl_hyperjump(80)(trip))
+num_decel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.a < threshold)), dist_excl_hyperjump(80)(trip))
+num_stop_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.v < threshold)), dist_excl_hyperjump(80)(trip))
 
 features = [total_time, total_distance, straight_distance, straightness, acceleration_to_dist, \
 mean_acceleration(0), mean_decceleration(0), total_standstill_time(0.1), turnspeed_velocity, turnspeed_acceleration,\
@@ -143,12 +164,14 @@ proportion_constant_speed_time(1), proportion_deceleration_time, proportion_acce
 max_product_velocity_acceleration,  min_product_velocity_acceleration, \
  mean_product_velocity_acceleration,  std_product_velocity_acceleration,  max_product_velocity_deceleration, \
   min_product_velocity_deceleration,  mean_product_velocity_deceleration,  std_product_velocity_deceleration, \
-proportion_speed_in_interval(13.8, 19.4), proportion_acceleration_in_interval(0.05,0.1), \
-median_velocity, median_acceleration_total, median_acceleration(0), median_decceleration(0), \
-low_velocity, high_velocity, low_acceleration_total, high_acceleration_total, low_steering, high_steering,\
- fourierAcc(0), fourierAcc(1), fourierAcc(2), fourierAcc(3), fourierAcc(4),fourierAcc(5),fourierAcc(6),\
-fourierAcc(7),fourierAcc(8),fourierAcc(9), fourierVec(0), fourierVec(1), fourierVec(2), fourierVec(3), \
-fourierVec(4), fourierVec(5), fourierVec(6), fourierVec(7), fourierVec(8), fourierVec(9) ]
+  proportion_speed_in_interval(13.8, 19.4), proportion_acceleration_in_interval(0.05,0.1), \
+median_velocity, median_acceleration_total, median_acceleration(0), median_decceleration(0), 
+velocity_percentile(5), velocity_percentile(25), velocity_percentile(75), velocity_percentile(95), \
+acceleration_percentile(5), acceleration_percentile(25), acceleration_percentile(75), acceleration_percentile(95), \
+steering_percentile(5), steering_percentile(25), steering_percentile(75), steering_percentile(95), \
+velocity_quartdist, steering_quartdist, acceleration_quartdist,\
+dist_excl_hyperjump(80), number_stops(0.1), number_accel(0.5), number_decel(0.5), num_accel_meter(0.5), \
+num_decel_meter(0.5), num_stop_meter(0.1) ]
 #sum_turnspeeds, sum_turnacc, mean_velocity_excluding_stop left out because of exessive zero division
 
 
@@ -159,6 +182,7 @@ if __name__=='__main__':
     trip = trip(trippath)
     samplefeatures = [total_distance,  total_standstill_time(0.1)]
     output = [float(f(trip)) for f in samplefeatures]
-    print(output)
+    #print(output)
     print(len(features))
+    #print dist_excl_hyperjump(80)(trip)
     #print(np.sort(trip.a))
