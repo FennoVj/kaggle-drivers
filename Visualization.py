@@ -11,19 +11,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def singleDriverFeature(featureMatrix, driverID, featureID, realtrips, faketrips, bins=50, proportional = True):
+"""
+Plots a single feature for some about of drivers
+numdrivers: the number of drivers to plot the feature for, randomly chosen
+featureID: what feature to plot from the matrix
+realtrips: number of trips to take from each driver, suggest 200
+faketrips: number of trips used to calculate the average over all drivers (in red), higher is better
+"""
+def singleDriverFeature(featureMatrix, numdrivers, featureID, realtrips=200, faketrips=10000, bins=50, percentile = 0):
     proportion = float(realtrips) / float(faketrips)
-    trips, labels = getTrips(featureMatrix, driverID, realtrips, faketrips)
-    real = trips[np.where(labels)[0]]
-    fake = trips[np.where(np.logical_not(labels))[0]]
-    rhist, rbins = np.histogram([trip[featureID] for trip in real], bins)
-    fhist, fbins = np.histogram([trip[featureID] for trip in fake], bins)
-    if proportional:
-        fhist = fhist * proportion    
-    plt.plot(fbins[0:-1], fhist, 'r', rbins[0:-1], rhist, 'b')
-    plt.show()
     
-def allDriversFeatures(featureMatrix, featureID, bins = 100, percentile = 1):
+    _, numT, numD = np.shape(featureMatrix)
+    page = np.reshape(featureMatrix[featureID], numT * numD)
+    minrange = np.percentile(page, percentile)
+    maxrange = np.percentile(page, 100-percentile)
+    ftrips, _ = getTrips(featureMatrix, 0, 0, faketrips)
+    fhist, fbins = np.histogram([trip[featureID] for trip in ftrips], bins, (minrange, maxrange))
+    fhist = fhist * proportion    
+    plt.plot(fbins[0:-1], fhist, 'r')    
+
+    driverIDs = np.random.choice(np.arange(numD), numdrivers, False)
+    for driver in driverIDs:
+        trips, _ = getTrips(featureMatrix, driver, realtrips, 0)
+        rhist, rbins = np.histogram([trip[featureID] for trip in trips], bins, (minrange, maxrange))
+        plt.plot(rbins[0:-1], rhist)
+    
+    plt.show()
+
+"""
+Plots the average of all drivers for a given feature
+allows cutting off percentile to prevent extremes
+"""    
+def allDriversFeatures(featureMatrix, featureID, bins = 100, percentile = 4):
     _, numTrips, numDrivers = np.shape(featureMatrix)
     page = np.reshape(featureMatrix[featureID], numTrips * numDrivers)
     minrange = np.percentile(page, percentile)
@@ -37,9 +56,9 @@ if __name__ == '__main__':
     
     dataPath = 'D:\\Documents\\Data\\MLiP'
     #featureMatrix = totalFeatureMatrix(dataPath + '\\features')
-    featureMatrix = np.load(dataPath + '\\features.npy')
+    featureMatrix = np.load(dataPath + '\\featuresfourier.npy')
     numF, _, _ = np.shape(featureMatrix)
-    #singleDriverFeature(featureMatrix, 0, 0, 200, 1000)
-    for i in range(numF):
-        allDriversFeatures(featureMatrix, i, 10000, 5)
+    singleDriverFeature(featureMatrix, 2, 0)
+    #for i in range(numF):
+    #    allDriversFeatures(featureMatrix, i, 10000, 5)
     
