@@ -154,24 +154,80 @@ num_accel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.
 num_decel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.a < threshold)), dist_excl_hyperjump(80)(trip))
 num_stop_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.v < threshold)), dist_excl_hyperjump(80)(trip))
 
-features = [total_time, total_distance, straight_distance, straightness, acceleration_to_dist, \
-mean_acceleration(0), mean_decceleration(0), total_standstill_time(0.1), turnspeed_velocity, turnspeed_acceleration,\
-mean_turnacc(0), mean_steering_right(0), mean_steering_left(0), number_acc_threshold(0.2), \
-number_dec_threshold(0.2), number_steering_threshold(0.05), max_velocity, min_velocity, max_acceleration, min_acceleration, \
-max_steering, min_steering, mean_steering, mean_acceleration_total, mean_velocity, \
-std_velocity, std_acceleration, std_steering, mean_rad, std_rad, mean_x, mean_y, std_x, std_y, std_phi, \
-proportion_constant_speed_time(1), proportion_deceleration_time, proportion_acceleration_time, \
-max_product_velocity_acceleration,  min_product_velocity_acceleration, \
- mean_product_velocity_acceleration,  std_product_velocity_acceleration,  max_product_velocity_deceleration, \
-  min_product_velocity_deceleration,  mean_product_velocity_deceleration,  std_product_velocity_deceleration, \
-  proportion_speed_in_interval(13.8, 19.4), proportion_acceleration_in_interval(0.05,0.1), \
-median_velocity, median_acceleration_total, median_acceleration(0), median_decceleration(0), 
-velocity_percentile(5), velocity_percentile(25), velocity_percentile(75), velocity_percentile(95), \
-acceleration_percentile(5), acceleration_percentile(25), acceleration_percentile(75), acceleration_percentile(95), \
-steering_percentile(5), steering_percentile(25), steering_percentile(75), steering_percentile(95), \
-velocity_quartdist, steering_quartdist, acceleration_quartdist,\
-dist_excl_hyperjump(80), number_stops(0.1), number_accel(0.5), number_decel(0.5), num_accel_meter(0.5), \
-num_decel_meter(0.5), num_stop_meter(0.1) ]
+features = [total_time,
+            total_distance,
+            straight_distance,
+            straightness,
+            acceleration_to_dist,
+            mean_acceleration(0),
+            mean_decceleration(0),
+            total_standstill_time(0.1),
+            turnspeed_velocity,
+            turnspeed_acceleration,mean_turnacc(0),
+            mean_steering_right(0),
+            mean_steering_left(0),
+            number_acc_threshold(0.2),
+            number_dec_threshold(0.2),
+            number_steering_threshold(0.05),
+            max_velocity,
+            min_velocity,
+            max_acceleration,
+            min_acceleration,
+            max_steering,
+            min_steering,
+            mean_steering,
+            mean_acceleration_total,
+            mean_velocity,
+            std_velocity,
+            std_acceleration,
+            std_steering,
+            mean_rad,
+            std_rad,
+            mean_x,
+            mean_y,
+            std_x,
+            std_y,
+            std_phi,
+            proportion_constant_speed_time(1),
+            proportion_deceleration_time,
+            proportion_acceleration_time,
+            max_product_velocity_acceleration,
+            min_product_velocity_acceleration,
+            mean_product_velocity_acceleration,
+            std_product_velocity_acceleration,
+            max_product_velocity_deceleration,
+            min_product_velocity_deceleration,
+            mean_product_velocity_deceleration,
+            std_product_velocity_deceleration,
+            proportion_speed_in_interval(13.8,19.4),
+            proportion_acceleration_in_interval(0.05,0.1),
+            median_velocity,
+            median_acceleration_total,
+            median_acceleration(0),
+            median_decceleration(0),            
+            velocity_percentile(5),
+            velocity_percentile(25),
+            velocity_percentile(75),
+            velocity_percentile(95),
+            acceleration_percentile(5),
+            acceleration_percentile(25),
+            acceleration_percentile(75),
+            acceleration_percentile(95),
+            steering_percentile(5),
+            steering_percentile(25),
+            steering_percentile(75),
+            steering_percentile(95),
+            velocity_quartdist,
+            steering_quartdist,
+            acceleration_quartdist,
+            dist_excl_hyperjump(80),
+            number_stops(0.1),
+            number_accel(0.5),
+            number_decel(0.5),
+            num_accel_meter(0.5),
+            num_decel_meter(0.5),
+            num_stop_meter(0.1)
+            ]
 #sum_turnspeeds, sum_turnacc, mean_velocity_excluding_stop left out because of exessive zero division
 
 
