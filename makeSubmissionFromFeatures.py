@@ -5,12 +5,12 @@ Created on Wed Mar 04 16:46:08 2015
 @author: fenno_000
 """
 import RandomForestClassifier as learn
+#import GradientBoostedClassifier as learn
 import readFeatureMatrix
 import CreateSubmission
 import numpy as np
 import zipfile
 from sklearn.decomposition import PCA
-
 """
 Make it so every feature has a mean of 1, taken over the set of all drivers
 """
@@ -40,35 +40,52 @@ but feel free to change that line and see what happens to the results
 """
 def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, normalize = False, digits = 5):
     #Read Feature Matrix    
-    featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
+    #featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
     #ShortCut
-    np.save('D:\\Documents\\Data\\MLiP\\featuresfourier', featureMatrix)
-    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\featuresraw.npy')
+    featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\featurestotal.npy')
+    #np.save('D:\\Documents\\Data\\MLiP\\featurestotal', featureMatrix)
     
-    if normalize:
-        featureMatrix = normalizeFeatureMatrix(featureMatrix)
+    print(np.shape(featureMatrix))
+    featureMatrix = np.delete(featureMatrix, [4,8,9,14,15,38,39,40,41,42,43,44,45], 0 )
+    
     drivernrs = readFeatureMatrix.getdrivernrs(featureMatrixPath)
     print('Done Reading Feature matrix!')
     print(np.shape(featureMatrix))
     
-    _, numTrips, numDrivers = np.shape(featureMatrix)
+    numFeat, numTrips, numDrivers = np.shape(featureMatrix)
+    
+    numTrips = 200
     #readFeatureMatrix.printMatlabStyle(featureMatrix)
+    importances = np.zeros((numFeat, numDrivers))
     
     #Train and immediately predict all trips from a single driver, one by one
     probabilities = np.zeros((numTrips, 2, numDrivers))
     for i in range(numDrivers):
-        trainTrips, trainLabels = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)     
-        
+        #trainTrips, trainLabels, pathlist = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)
+        trainTrips = np.transpose(featureMatrix[:,:,i])
+        realTrips = trainTrips[:numTrips,:]
+        trainLabels = np.hstack((np.ones(trainRealTrips), np.zeros(trainFakeTrips)))
+
         #model = learn.trainModel(trainTrips, trainLabels) #Add other parameters here to test
-        model = learn.trainModel(trainTrips, trainLabels, n_trees = 150, n_jobs = -1)
-        tempprobs = learn.predictClass(model, np.transpose(featureMatrix[:,:,i]))
+        model = learn.trainModel(trainTrips, trainLabels, n_trees = 200, n_jobs = -1)
         
+        importances[:,i] = model.feature_importances_
+        
+        tempprobs = learn.predictClass(model, realTrips)
+        
+        #avgweight = np.sum(tempprobs)
+        #sampleweight = np.hstack((tempprobs, avgweight * np.ones(numTrips)))
+        #model = learn.trainModel(trainTrips, trainLabels, n_trees = 200, n_jobs = -1, sample_weight = sampleweight)
+        #tempprobs = learn.predictClass(model, realTrips)
+
         probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
-        if i%50 == 0:
+        if i%10 == 0:
             print("Done learning driver " + `i`)
     print('Done calculating probabilities!')
     #readFeatureMatrix.printMatlabStyle(probabilities)
+    
+    print(np.mean(importances, axis=1))    
     
     #Makes submission file
     fmtstring = '%0.' + `digits` + 'f'

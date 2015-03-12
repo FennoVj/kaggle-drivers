@@ -30,6 +30,20 @@ def get_tripfiles(folder):
 def fftfeatures(feature, maxFeatures=20):
     y = fft(feature)
     return np.abs(y[0:maxFeatures])
+	
+def tripFixedLength(x, y, cumdist, datapoints = 1500):
+    lperd = cumdist[-1] / float(datapoints-1)
+    newx = np.zeros(datapoints)
+    newy = np.zeros(datapoints)
+    fill = 1
+    for i in range(len(cumdist)):
+        if cumdist[i] > fill * lperd:
+            newx[fill] = x[i]
+            newy[fill] = y[i]
+            fill = fill + 1
+    newx[-1] = x[-1]
+    newy[-1] = y[-1]
+    return newx, newy
     
 #all_files = (get_tripfiles(full_data))
 
@@ -49,7 +63,7 @@ class trip(np.ndarray):
         #k = 3
         #s = 1
         X, Y = self.T
-        self.n = self.shape[0]
+        self.n = self.shape[0] - 1
         self.t = np.arange(self.n)
         self.x = X
         self.y = Y
@@ -73,7 +87,12 @@ class trip(np.ndarray):
         self.normX = self.rad * np.cos(self.normphi)
         self.normY = self.rad * np.sin(self.normphi)
         
-        self.dist = np.hypot(np.diff(self.x), np.diff(self.y))
+        self.dist = np.copy(self.v)
+        self.dist[self.dist > 50] = 0
+        self.cumdist = np.cumsum(self.dist)
+        
+        #meanrad = np.mean(self.rad)
+        self.newX, self.newY = tripFixedLength(self.normX, self.normY, self.cumdist)
 
 if __name__ == '__main__':
 #examples:
