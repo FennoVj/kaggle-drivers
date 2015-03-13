@@ -31,6 +31,15 @@ def pca(featureMatrix, pcpCompNumber):
         #print(pca.explained_variance_ratio_)
         newFeatureMatrix[:,:,i]=pca.components_        
     return newFeatureMatrix
+    
+def histeq(probs,nbr_bins=300):
+   #get image histogram
+   imhist,bins = np.histogram(probs,nbr_bins,density=True)
+   cdf = imhist.cumsum() #cumulative distribution function
+   cdf = cdf / cdf[-1] #normalize
+   #use linear interpolation of cdf to find new pixel values
+   im2 = np.interp(probs,bins[:-1],cdf)
+   return im2.reshape(probs.shape)
 
 """
 Reads the featurematrix, does the machine learning, creates models, uses them to predict every trip, makes submission file
@@ -40,14 +49,13 @@ but feel free to change that line and see what happens to the results
 """
 def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, normalize = False, digits = 5):
     #Read Feature Matrix    
-    #featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
+    featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
     #ShortCut
-    featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\featurestotal.npy')
-    #np.save('D:\\Documents\\Data\\MLiP\\featurestotal', featureMatrix)
+    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\featurestotal.npy')
+    np.save('D:\\Documents\\Data\\MLiP\\featurestotal', featureMatrix)
     
     print(np.shape(featureMatrix))
-    featureMatrix = np.delete(featureMatrix, [4,8,9,14,15,38,39,40,41,42,43,44,45], 0 )
     
     drivernrs = readFeatureMatrix.getdrivernrs(featureMatrixPath)
     print('Done Reading Feature matrix!')
@@ -68,16 +76,18 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
         trainLabels = np.hstack((np.ones(trainRealTrips), np.zeros(trainFakeTrips)))
 
         #model = learn.trainModel(trainTrips, trainLabels) #Add other parameters here to test
-        model = learn.trainModel(trainTrips, trainLabels, n_trees = 200, n_jobs = -1)
+        model = learn.trainModel(trainTrips, trainLabels, criterion = 'gini', n_trees = 300, n_jobs = -1)
         
         importances[:,i] = model.feature_importances_
         
         tempprobs = learn.predictClass(model, realTrips)
         
-        #avgweight = np.sum(tempprobs)
-        #sampleweight = np.hstack((tempprobs, avgweight * np.ones(numTrips)))
-        #model = learn.trainModel(trainTrips, trainLabels, n_trees = 200, n_jobs = -1, sample_weight = sampleweight)
-        #tempprobs = learn.predictClass(model, realTrips)
+        #tempprobs = histeq(tempprobs)
+        
+        avgweight = np.sum(tempprobs)
+        sampleweight = np.hstack((tempprobs, avgweight * np.ones(numTrips)))
+        model = learn.trainModel(trainTrips, trainLabels, criterion = 'entropy', n_trees = 300, n_jobs = -1, sample_weight = sampleweight)
+        tempprobs = learn.predictClass(model, realTrips)
 
         probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
         if i%10 == 0:

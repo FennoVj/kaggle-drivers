@@ -75,7 +75,7 @@ total_distance = lambda trip: np.sum(trip.dist)
 straight_distance = lambda trip: np.hypot(trip[-1,0], trip[-1,1])
 straightness = lambda trip: np.divide(float(straight_distance(trip)), float(total_distance(trip)))
 
-sum_turnspeeds = lambda trip: np.sum(trip.s/trip.v)
+
 acceleration_to_dist = lambda trip: np.sum(trip.a**2)
 
 dist_excl_hyperjump = lambda maxdist: lambda trip: float(np.sum(trip.dist[trip.dist < maxdist])) #sample: 80
@@ -90,7 +90,7 @@ proportion_standstill_time =  lambda threshold: lambda trip: coF(trip.v < thresh
 turnspeed_velocity = lambda trip: np.sum(trip.s * trip.v)
 mean_turnspeed_velocity = lambda threshold: lambda trip: thF(trip.s * trip.v, np.mean, threshold, True)#sample threshold: 0
 turnspeed_acceleration = lambda trip: np.sum(trip.s * trip.a)
-sum_turnacc = lambda trip : np.sum(trip.s / trip.a)
+
 mean_turnacc = lambda threshold: lambda trip: thF(trip.s * trip.a, np.mean, threshold, True)#sample threshold: 0
 mean_steering_right = lambda threshold: lambda trip: thF(trip.s, np.mean, threshold, True)#sample threshold: 0
 mean_steering_left = lambda threshold: lambda trip: thF(trip.s, np.mean, threshold, False)#sample threshold: 0
@@ -133,7 +133,6 @@ proportion_constant_speed_time = lambda threshold: lambda trip: coF(np.abs(trip.
 
 proportion_deceleration_time = lambda trip: coF(trip.a < 0, True)
 proportion_acceleration_time = lambda trip: coF(trip.a > 0, True)
-mean_velocity_excluding_stop = lambda threshold: lambda trip: sum(trip.v) / coF(trip.v > threshold, False) #sample threshold: 0.1
 
 max_product_velocity_acceleration = lambda trip: safe(trip.a[(trip.a>0)] * trip.v[(trip.a>0)], np.max)
 min_product_velocity_acceleration = lambda trip: safe(trip.a[(trip.a>0)] * trip.v[(trip.a>0)], np.min)
@@ -181,6 +180,22 @@ total_raw_distance = lambda trip: np.sum( trip.v )
 std_acceleration = lambda trip: safe(trip.a[(trip.a>0)], np.std)
 std_deceleration = lambda trip: safe(trip.a[(trip.a<0)], np.std)
 num_acceleration_deceleration_changes = lambda trip: np.count_nonzero(np.diff(trip.a > 0))
+
+#friday night feature time
+median_straight_distance = lambda trip: np.median(trip.straightdist)
+max_straight_distance = lambda trip: np.max(trip.straightdist)
+std_straight_distance = lambda trip: np.std(trip.straightdist)
+max_new_straightness = lambda trip: np.divide(float(max_straight_distance(trip)), dist_excl_hyperjump(80)(trip))
+new_straightness = lambda trip: np.divide(float(straight_distance(trip)), dist_excl_hyperjump(80)(trip))
+max_straightness = lambda trip: np.divide(float(max_straight_distance(trip)), total_distance(trip))
+halfway_distance = lambda trip: np.median(trip.cumdist)
+mean_ds = lambda trip: np.mean(trip.ds)
+std_ds = lambda trip: np.std(trip.ds)
+perc_ds = lambda perc: lambda trip: np.percentile(trip.ds, perc)
+sum_turnacc = lambda trip : np.sum(np.divide(trip.s[trip.a !=0], trip.a[trip.a !=0]))
+sum_turnspeeds = lambda trip : np.sum(np.divide(trip.s[trip.v !=0], trip.v[trip.v !=0]))
+mean_velocity_during_stop = lambda threshold: lambda trip: safe(trip.v[trip.v < threshold], np.mean)
+mean_velocity_excluding_stop = lambda threshold: lambda trip: safe(trip.v[trip.v > threshold], np.mean)
 
 features = [total_time,
                 total_distance, 
@@ -288,10 +303,22 @@ features = [total_time,
                 num_stop_meter(2),
                 distance_of_stops(0.1),
                 distance_of_subtrips(5),
-                distance_until_stop(0.1)]
-#sum_turnspeeds, sum_turnacc, mean_velocity_excluding_stop left out because of exessive zero division
-
-
+                distance_until_stop(0.1),
+                median_straight_distance,
+                max_straight_distance,
+                std_straight_distance,
+                max_new_straightness,
+                new_straightness,
+                max_straightness,
+                halfway_distance,
+                mean_ds,
+                std_ds,
+                perc_ds(98),
+                perc_ds(2),
+                sum_turnacc,
+                sum_turnspeeds,
+                mean_velocity_during_stop(2),
+                mean_velocity_excluding_stop(2)]
 
 
 if __name__=='__main__':

@@ -29,19 +29,25 @@ def tripMatch(triplist, tripnr):
 def getPercentile(triplist, tripnr, attrname, op=np.mean):
     return percentileofscore([op(trip.__dict__[attrname]) for trip in triplist], op(triplist[tripnr].__dict__[attrname]))
 
-exampleDriverFeature = lambda triplist, tripnr: getPercentile(triplist, tripnr,'v', np.max)
+maxVelPerc = lambda triplist, tripnr: getPercentile(triplist, tripnr,'dist', np.max)
+maxAccPerc = lambda triplist, tripnr: getPercentile(triplist, tripnr,'anorm', np.max)
+minAccPerc = lambda triplist, tripnr: getPercentile(triplist, tripnr,'anorm', np.min)
+maxStePerc = lambda triplist, tripnr: getPercentile(triplist, tripnr,'snorm', np.max)
+minStePerc = lambda triplist, tripnr: getPercentile(triplist, tripnr,'snorm', np.min)
+
 getVelocityPercentile = lambda triplist, tripnr: getPercentile(triplist, tripnr,'v')
 getAccelerationPercentile = lambda triplist, tripnr: getPercentile(triplist, tripnr, 'a')
 
 def coF(array, normalize = True):
     count = float(np.count_nonzero(array))
-    return count / len(array) if normalize else count
+    if normalize:
+        count = count / len(array)
+    return count
 
 def coD(array, dist, normalize=True):
     distInInterval = np.sum(dist[array])
     if normalize:
-        totaldist = np.sum(dist)
-        distInInterval = distInInterval / float(totaldist)
+        distInInterval = distInInterval / float(np.sum(dist))
     return distInInterval
 
 
@@ -130,7 +136,6 @@ def makeDriverFeature(realTrips, fakeTrips, feature):
 
 
 driverfeatures = [tripMatch,
-                  exampleDriverFeature,
                   getVelocityPercentile,
                   getAccelerationPercentile,
                   propVel10,
@@ -152,7 +157,12 @@ driverfeatures = [tripMatch,
                   propDAcc30,
                   propDAcc70,
                   propDAcc90,
-                  propDAcc100 ]
+                  propDAcc100,
+                  maxVelPerc,
+                  maxAccPerc,
+                  minAccPerc,
+                  maxStePerc,
+                  minStePerc ]
                   
 if __name__ == '__main__':
     driver = 'D:\Documents\Data\MLiP\drivers\\1\\'

@@ -78,6 +78,7 @@ class trip(np.ndarray):
         self.s = np.hstack((self.s[0], self.s, self.s[-1]))
         self.a = np.diff(self.v)
         self.a = np.hstack((self.a[0], self.a))
+        self.ds = np.diff(self.s)
         
         #polar coordinates
         self.rad = np.hypot(self.x, self.y)
@@ -90,6 +91,11 @@ class trip(np.ndarray):
         self.dist = np.copy(self.v)
         self.dist[self.dist > 50] = 0
         self.cumdist = np.cumsum(self.dist)
+        self.straightdist = np.hypot(self.x, self.y)
+        self.anorm = np.copy(self.a)
+        self.anorm[self.dist > 50] = 0
+        self.snorm = np.copy(self.s)
+        self.snorm[self.dist > 50] = 0
         
         #meanrad = np.mean(self.rad)
         self.newX, self.newY = tripFixedLength(self.normX, self.normY, self.cumdist)
