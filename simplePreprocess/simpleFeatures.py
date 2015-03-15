@@ -64,7 +64,20 @@ def lengthOfStreaks(array, cumdist, value=True, endCond = None):
             result[counter] = cumdist[int(e)] - startseg
             counter = counter + 1
     return result[:counter]
-	
+
+"""
+Computes onicescu energy
+It was the idea of a guy online who said it was an insane feature, so don't blame me
+"""    
+def onicescu(attr):
+    b, e = np.histogram(attr)
+    probs = np.empty(len(attr))
+    for i, vel in enumerate(attr):
+        probs[i] = b[np.where(e <= vel)[0][-1]-1] / float(len(attr))
+    result = np.sum(probs**2.0)
+    del b, e, probs
+    return result
+    
 #Used features: n, s, t, v, a
 
 #np.seterr(divide = 'ignore')
@@ -114,7 +127,7 @@ mean_velocity_th = lambda threshold: lambda trip: thF(trip.v, np.mean, threshold
 mean_acceleration_th = lambda threshold: lambda trip: thF(trip.a, np.mean, threshold, True)
 
 std_velocity = lambda trip: np.std(trip.v)
-std_acceleration = lambda trip: np.std(trip.a)
+std_acceleration_total = lambda trip: np.std(trip.a)
 std_steering = lambda trip: np.std(trip.s)
 
 #polar stuff
@@ -167,9 +180,9 @@ fourierVec = lambda coeff: lambda trip: trip.fourierv[coeff]
 number_stops = lambda threshold: lambda trip: len(countStreak(trip.v < threshold)) #sample threshold: 0.1
 number_accel = lambda threshold: lambda trip: len(countStreak(trip.a > threshold)) #sample: 0.2
 number_decel = lambda threshold: lambda trip: len(countStreak(trip.a < threshold))
-num_accel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.a > threshold)), dist_excl_hyperjump(80)(trip))
-num_decel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.a < threshold)), dist_excl_hyperjump(80)(trip))
-num_stop_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.v < threshold)), dist_excl_hyperjump(80)(trip))
+num_accel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.a > threshold)), total_distance(trip))
+num_decel_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.a < threshold)), total_distance(trip))
+num_stop_meter = lambda threshold: lambda trip: np.divide(len(countStreak(trip.v < threshold)), total_distance(trip))
 
 #length-of-streak-related features
 distance_of_stops = lambda threshold: lambda trip: safe(lengthOfStreaks(trip.v < threshold, trip.cumdist), np.mean)
@@ -185,8 +198,8 @@ num_acceleration_deceleration_changes = lambda trip: np.count_nonzero(np.diff(tr
 median_straight_distance = lambda trip: np.median(trip.straightdist)
 max_straight_distance = lambda trip: np.max(trip.straightdist)
 std_straight_distance = lambda trip: np.std(trip.straightdist)
-max_new_straightness = lambda trip: np.divide(float(max_straight_distance(trip)), dist_excl_hyperjump(80)(trip))
-new_straightness = lambda trip: np.divide(float(straight_distance(trip)), dist_excl_hyperjump(80)(trip))
+max_new_straightness = lambda trip: np.divide(float(max_straight_distance(trip)), total_distance(trip))
+new_straightness = lambda trip: np.divide(float(straight_distance(trip)), total_distance(trip))
 max_straightness = lambda trip: np.divide(float(max_straight_distance(trip)), total_distance(trip))
 halfway_distance = lambda trip: np.median(trip.cumdist)
 mean_ds = lambda trip: np.mean(trip.ds)
@@ -196,6 +209,19 @@ sum_turnacc = lambda trip : np.sum(np.divide(trip.s[trip.a !=0], trip.a[trip.a !
 sum_turnspeeds = lambda trip : np.sum(np.divide(trip.s[trip.v !=0], trip.v[trip.v !=0]))
 mean_velocity_during_stop = lambda threshold: lambda trip: safe(trip.v[trip.v < threshold], np.mean)
 mean_velocity_excluding_stop = lambda threshold: lambda trip: safe(trip.v[trip.v > threshold], np.mean)
+
+#saturday night feature time
+num_acc_dec_changes = lambda trip: coF(np.diff(trip.a > 0))
+num_acc_dec_changes_distance = lambda trip: np.divide(coF(np.diff(trip.a > 0), False), total_distance(trip))
+np.seterr(divide='ignore', invalid='ignore')
+mean_curvature = lambda trip: np.mean(np.divide((trip.dx * trip.ddx) - (trip.dy*trip.ddx), (trip.dx**2.0 + trip.dy**2.0)**1.5))
+num_acc_dec_changes_th = lambda threshold: lambda trip: np.count_nonzero(np.logical_and(trip.a[:-1]>=0,trip.a[1:]<=threshold))
+
+#crazy guy online features
+vel_squared = lambda trip: np.mean(trip.dist)**2.0
+vel_cubed = lambda trip: np.mean(trip.dist)**3.0
+onicescu_speed = lambda trip: onicescu(trip.v)
+onicescu_slope = lambda trip: onicescu(trip.o)
 
 features = [total_time,
                 total_distance, 
@@ -318,7 +344,16 @@ features = [total_time,
                 sum_turnacc,
                 sum_turnspeeds,
                 mean_velocity_during_stop(2),
-                mean_velocity_excluding_stop(2)]
+                mean_velocity_excluding_stop(2),
+                std_acceleration_total,
+                num_acc_dec_changes,
+                num_acc_dec_changes_distance,
+                num_acc_dec_changes_th(-2.7),
+                mean_curvature,
+                vel_squared,
+                vel_cubed,
+                onicescu_speed,
+                onicescu_slope]
 
 
 if __name__=='__main__':

@@ -5,11 +5,19 @@ Created on Sun Mar 08 14:00:06 2015
 @author: Fenno
 """
 
-from RandomForestClassifier import getTrips
-from readFeatureMatrix import totalFeatureMatrix
+#from readFeatureMatrix import totalFeatureMatrix
 import numpy as np
 import matplotlib.pyplot as plt
+from RandomForestClassifier import getTrips
 
+
+
+def matchHist(driver, average, proportion, bins = 50):
+    _, tbins = np.histogram(np.concatenate((driver, average)), bins)
+    dhist, _ = np.histogram(driver, tbins)
+    ahist, _ = np.histogram(average, tbins)
+    dhist = dhist * proportion
+    return np.mean((dhist - ahist)**2.0)
 
 """
 Plots a single feature for some about of drivers
@@ -22,20 +30,26 @@ def singleDriverFeature(featureMatrix, numdrivers, featureID, realtrips=200, fak
     proportion = float(realtrips) / float(faketrips)
     
     _, numT, numD = np.shape(featureMatrix)
-    page = np.reshape(featureMatrix[featureID], numT * numD)
+    numT = 200
+    page = np.reshape(featureMatrix[featureID,:numT,:], numT * numD)
     minrange = np.percentile(page, percentile)
     maxrange = np.percentile(page, 100-percentile)
     ftrips, _ = getTrips(featureMatrix, 0, 0, faketrips)
     fhist, fbins = np.histogram([trip[featureID] for trip in ftrips], bins, (minrange, maxrange))
     fhist = fhist * proportion    
     plt.plot(fbins[0:-1], fhist, 'r')    
+    
+    average = [trip[featureID] for trip in ftrips]
+    score = 0
 
     driverIDs = np.random.choice(np.arange(numD), numdrivers, False)
     for driver in driverIDs:
         trips, _ = getTrips(featureMatrix, driver, realtrips, 0)
         rhist, rbins = np.histogram([trip[featureID] for trip in trips], bins, (minrange, maxrange))
         plt.plot(rbins[0:-1], rhist)
-    
+        driver = [trip[featureID] for trip in trips]
+        score = score + (matchHist(driver, average, proportion)) / float(numdrivers)
+    print("Feature " + `featureID` + " - " + str(score))
     plt.show()
 
 """
@@ -56,9 +70,10 @@ if __name__ == '__main__':
     
     dataPath = 'D:\\Documents\\Data\\MLiP'
     #featureMatrix = totalFeatureMatrix(dataPath + '\\features')
-    featureMatrix = np.load(dataPath + '\\featuresfourier.npy')
+    featureMatrix = np.load(dataPath + '\\features1000.npy')
     numF, _, _ = np.shape(featureMatrix)
-    singleDriverFeature(featureMatrix, 2, 0)
+    for i in range(numF):
+        singleDriverFeature(featureMatrix, 5, i, percentile = 10)
     #for i in range(numF):
     #    allDriversFeatures(featureMatrix, i, 10000, 5)
     

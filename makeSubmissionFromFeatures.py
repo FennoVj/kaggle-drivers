@@ -47,70 +47,60 @@ Note: you can change the logistic regression parameter by changing the lg.trainM
 I didn't include this in the function parameters because it already had a lot of function parameters,
 but feel free to change that line and see what happens to the results
 """
-def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, normalize = False, digits = 5):
-    #Read Feature Matrix    
+def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, digits = 5):
+    #Read Feature Matrix
     featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
     #ShortCut
-    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\featurestotal.npy')
-    np.save('D:\\Documents\\Data\\MLiP\\featurestotal', featureMatrix)
+    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features1000.npy')
+    #np.save('D:\\Documents\\Data\\MLiP\\features1000', featureMatrix)
     
     print(np.shape(featureMatrix))
+
+    #some features that are not very informative, so they are ignored
+    featureMatrix = np.delete(featureMatrix,  [17, 39, 42, 46, 49, 52, 53, 85, 86, 87, 126, 138, 144, 148], 0 )  
     
     drivernrs = readFeatureMatrix.getdrivernrs(featureMatrixPath)
     print('Done Reading Feature matrix!')
     print(np.shape(featureMatrix))
     
-    numFeat, numTrips, numDrivers = np.shape(featureMatrix)
-    
-    numTrips = 200
-    #readFeatureMatrix.printMatlabStyle(featureMatrix)
+    numFeat, _,numDrivers = np.shape(featureMatrix)
+    numTrips = 200 #The number of trips to make the submission out of, always 200
     importances = np.zeros((numFeat, numDrivers))
     
     #Train and immediately predict all trips from a single driver, one by one
     probabilities = np.zeros((numTrips, 2, numDrivers))
     for i in range(numDrivers):
-        #trainTrips, trainLabels, pathlist = learn.getTrips(featureMatrix, i, trainRealTrips, trainFakeTrips)
         trainTrips = np.transpose(featureMatrix[:,:,i])
         realTrips = trainTrips[:numTrips,:]
         trainLabels = np.hstack((np.ones(trainRealTrips), np.zeros(trainFakeTrips)))
 
-        #model = learn.trainModel(trainTrips, trainLabels) #Add other parameters here to test
-        model = learn.trainModel(trainTrips, trainLabels, criterion = 'gini', n_trees = 300, n_jobs = -1)
-        
-        importances[:,i] = model.feature_importances_
+        model = learn.trainModel(trainTrips, trainLabels, criterion = 'entropy', n_trees = 300, n_jobs = -1)        
+        importances[:,i] = model.feature_importances_  
         
         tempprobs = learn.predictClass(model, realTrips)
-        
-        #tempprobs = histeq(tempprobs)
-        
-        avgweight = np.sum(tempprobs)
-        sampleweight = np.hstack((tempprobs, avgweight * np.ones(numTrips)))
-        model = learn.trainModel(trainTrips, trainLabels, criterion = 'entropy', n_trees = 300, n_jobs = -1, sample_weight = sampleweight)
-        tempprobs = learn.predictClass(model, realTrips)
-
         probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
+
         if i%10 == 0:
             print("Done learning driver " + `i`)
     print('Done calculating probabilities!')
-    #readFeatureMatrix.printMatlabStyle(probabilities)
-    
-    print(np.mean(importances, axis=1))    
     
     #Makes submission file
     fmtstring = '%0.' + `digits` + 'f'
     CreateSubmission.createSubmissionfileFrom3D(outputSubmissionPath, probabilities, drivernrs = drivernrs, fmtstring = fmtstring)
+    
+    return importances
         
 if __name__ == '__main__':
     #print(np.vstack((np.arange(5), np.array([0.3,0.2,0.1,0.8,0.9]))))
     
-    featureMatrixPath = 'D:\\Documents\\Data\\MLiP\\features'
-    outputSubmissionPath = 'D:\\Documents\\Data\\MLiP\\submission.csv'
+    featureMatrixPath = 'D:\\Documents\\Data\\MLiP\\features1000'
+    outputSubmissionPath = 'D:\\Documents\\Data\\MLiP\\submission1000.csv'
     trainRealTrips = 200
-    trainFakeTrips = 200 #Change to 200 for real thing
+    trainFakeTrips = 1000 #number of fake trips
     normalize = False
     significantdigits = 5
-    makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips, trainFakeTrips, normalize, significantdigits)
+    makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips, trainFakeTrips, significantdigits)
     
     #zip the submission, makes it ~3x smaller
     zf = zipfile.ZipFile(outputSubmissionPath[:-4] + '.zip', mode='w')

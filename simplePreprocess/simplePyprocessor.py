@@ -68,7 +68,11 @@ class trip(np.ndarray):
         self.x = X
         self.y = Y
         self.dx = np.diff(self.x)
-        self.dy = np.diff(self.y)        
+        self.dy = np.diff(self.y)
+        self.ddx = np.diff(self.dx)
+        self.ddy = np.diff(self.dy)
+        self.ddx = np.hstack((0, self.ddx))
+        self.ddy = np.hstack((0, self.ddy))
 
         #The actual features
         self.v = np.hypot(self.dx, self.dy)
