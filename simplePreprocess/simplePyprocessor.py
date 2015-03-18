@@ -2,35 +2,21 @@
 """
 Created on Sat Mar 07 14:22:35 2015
 
-@author: Fenno
+@author: Team Mavericks
 """
 
 import numpy as np
-#from scipy.interpolate import UnivariateSpline
 from csv import reader
 from os import listdir
 from scipy.fftpack import fft
 
-
-# All the drivers with all the trips (2736 x 200)
-full_data = './data/drivers'
-# Reduced training data set (547 x 40). At least 2 false trips for every driver plus the unknown ones.
-# I kept the information which trips are false but that information should only be used for debugging
-train_data = './data/train'
-
-def get_tripfiles(folder):
-    """
-    returns a 2d-list (one list per driver) of the paths to all the trips
-    in a given folder
-    """
-    drivers = ['%s/%s' % (folder, driver) for driver in listdir(folder)]
-    trips = [['%s/%s' % (d, t) for t in listdir(d)] for d in drivers]
-    return trips
-    
-def fftfeatures(feature, maxFeatures=20):
-    y = fft(feature)
-    return np.abs(y[0:maxFeatures])
-	
+"""
+Sets a trip to be a fixed number of datapoints
+Used to compare two trips to each other
+It does this by dividing the trips into a number of pieces, lengthwise,
+and placing datapoints among these even division
+When the trip is not actually 1500 datapoints, the resulting array will have zeros at the end
+"""	
 def tripFixedLength(x, y, cumdist, datapoints = 1500):
     lperd = cumdist[-1] / float(datapoints-1)
     newx = np.zeros(datapoints)
@@ -44,11 +30,13 @@ def tripFixedLength(x, y, cumdist, datapoints = 1500):
     newx[-1] = x[-1]
     newy[-1] = y[-1]
     return newx, newy
-    
-#all_files = (get_tripfiles(full_data))
 
-#training_files = array(get_tripfiles(train_data))
-
+"""
+Class used to store all kinds of information about a trip, like
+velocity, acceleration, etc. This is calculated once, so that not every single feature has to 
+recompute the velocity. That is why this class only contains the basic information, 
+the actual handcrafted features do the rest of the work
+"""
 class trip(np.ndarray):
 
     def __new__(cls, filename, precision=1, **kwargs):
@@ -59,13 +47,10 @@ class trip(np.ndarray):
 
     def __init__(self, filename, **kwargs):
 
-        #spline stuff
-        #k = 3
-        #s = 1
         X, Y = self.T
-        self.n = self.shape[0] - 1
-        self.t = np.arange(self.n)
-        self.x = X
+        self.n = self.shape[0] - 1 #length of trip
+        self.t = np.arange(self.n) 
+        self.x = X #raw data
         self.y = Y
         self.dx = np.diff(self.x)
         self.dy = np.diff(self.y)
@@ -75,12 +60,12 @@ class trip(np.ndarray):
         self.ddy = np.hstack((0, self.ddy))
 
         #The actual features
-        self.v = np.hypot(self.dx, self.dy)
+        self.v = np.hypot(self.dx, self.dy) #velocity
         self.v = np.hstack((self.v[0], self.v))
-        self.o = np.arctan2(self.dy, self.dx)
-        self.s = np.diff(self.o)
+        self.o = np.arctan2(self.dy, self.dx) #orientation, or facing direction
+        self.s = np.diff(self.o) #steering, difference in orientation
         self.s = np.hstack((self.s[0], self.s, self.s[-1]))
-        self.a = np.diff(self.v)
+        self.a = np.diff(self.v) #Acceleration
         self.a = np.hstack((self.a[0], self.a))
         self.ds = np.diff(self.s)
         
@@ -88,11 +73,12 @@ class trip(np.ndarray):
         self.rad = np.hypot(self.x, self.y)
         self.phi = np.arctan2(self.y, self.x)
         meanphi = np.mean(self.phi)
-        self.normphi = self.phi - meanphi
+        self.normphi = self.phi - meanphi #normalized trip, by setting the average angle to 0
         self.normX = self.rad * np.cos(self.normphi)
         self.normY = self.rad * np.sin(self.normphi)
         
-        self.dist = np.copy(self.v)
+        self.dist = np.copy(self.v) #The distance traveled at each point, by taking out hyperjumps
+                                    #A hyperjump is defined as going faster than 180 km/h
         self.dist[self.dist > 50] = 0
         self.cumdist = np.cumsum(self.dist)
         self.straightdist = np.hypot(self.x, self.y)
@@ -101,7 +87,7 @@ class trip(np.ndarray):
         self.snorm = np.copy(self.s)
         self.snorm[self.dist > 50] = 0
         
-        #meanrad = np.mean(self.rad)
+        #the trip by setting it to 1500 datapoints
         self.newX, self.newY = tripFixedLength(self.normX, self.normY, self.cumdist)
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 """
 Created on Thu Mar 05 16:40:31 2015
 
-@author: Fenno
+@author: Team Mavericks
 """
 
 import numpy as np

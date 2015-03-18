@@ -2,7 +2,7 @@
 """
 Created on Sun Mar 08 14:00:06 2015
 
-@author: Fenno
+@author: Team Mavericks
 """
 
 #from readFeatureMatrix import totalFeatureMatrix
@@ -10,14 +10,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from RandomForestClassifier import getTrips
 
-
-
+"""
+Does some kind of matching of histograms, to compare two functions to each other
+Does this by making a histogram of both functions, then taking the binsizes as a vector, and
+  computing the euclidean distance between those vectors
+Used to compare a driver to the average, to see how 'ordinary' the driver is
+"""
 def matchHist(driver, average, proportion, bins = 50):
     _, tbins = np.histogram(np.concatenate((driver, average)), bins)
     dhist, _ = np.histogram(driver, tbins)
     ahist, _ = np.histogram(average, tbins)
     dhist = dhist * proportion
-    return np.mean((dhist - ahist)**2.0)
+    from math import sqrt
+    return sqrt(np.sum((dhist - ahist)**2.0))
 
 """
 Plots a single feature for some about of drivers
@@ -25,6 +30,8 @@ numdrivers: the number of drivers to plot the feature for, randomly chosen
 featureID: what feature to plot from the matrix
 realtrips: number of trips to take from each driver, suggest 200
 faketrips: number of trips used to calculate the average over all drivers (in red), higher is better
+bins: the number of bins to use for the histogram
+percentile: the percentile of extremes to cut off from both sides. Makes histograms better looking since it removes outliers
 """
 def singleDriverFeature(featureMatrix, numdrivers, featureID, realtrips=200, faketrips=10000, bins=50, percentile = 0):
     proportion = float(realtrips) / float(faketrips)
@@ -68,9 +75,8 @@ def allDriversFeatures(featureMatrix, featureID, bins = 100, percentile = 4):
 
 if __name__ == '__main__':
     
-    dataPath = 'D:\\Documents\\Data\\MLiP'
-    #featureMatrix = totalFeatureMatrix(dataPath + '\\features')
-    featureMatrix = np.load(dataPath + '\\features1000.npy')
+    dataPath = '/media/fenno/Storage/Documents/Data/MLiP'
+    featureMatrix = np.load(dataPath + '/features1000.npy')
     numF, _, _ = np.shape(featureMatrix)
     for i in range(numF):
         singleDriverFeature(featureMatrix, 5, i, percentile = 10)

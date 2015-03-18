@@ -2,87 +2,79 @@
 """
 Created on Wed Mar 04 16:46:08 2015
 
-@author: fenno_000
+@author: Team Mavericks
 """
 import RandomForestClassifier as learn
-#import GradientBoostedClassifier as learn
 import readFeatureMatrix
 import CreateSubmission
 import numpy as np
 import zipfile
-from sklearn.decomposition import PCA
-"""
-Make it so every feature has a mean of 1, taken over the set of all drivers
-"""
-def normalizeFeatureMatrix(featureMatrix):
-    numF = np.shape(featureMatrix)[0]
-    for i in range(numF):
-        meanF = np.mean(featureMatrix[i,:,:])
-        featureMatrix[i,:,:] = featureMatrix[i,:,:] / meanF
-    return featureMatrix    
-    
-def pca(featureMatrix, pcpCompNumber):
-    numTrips = np.shape(featureMatrix)[1]
-    numDrivers = np.shape(featureMatrix)[2]
-    newFeatureMatrix = np.zeros((pcpCompNumber, numTrips, numDrivers))
-    for i in range(numDrivers):
-        pca = PCA(n_components=pcpCompNumber)
-        pca.fit(featureMatrix[:,:,i])
-        #print(pca.explained_variance_ratio_)
-        newFeatureMatrix[:,:,i]=pca.components_        
-    return newFeatureMatrix
-    
-def histeq(probs,nbr_bins=300):
-   #get image histogram
-   imhist,bins = np.histogram(probs,nbr_bins,density=True)
-   cdf = imhist.cumsum() #cumulative distribution function
-   cdf = cdf / cdf[-1] #normalize
-   #use linear interpolation of cdf to find new pixel values
-   im2 = np.interp(probs,bins[:-1],cdf)
-   return im2.reshape(probs.shape)
 
 """
 Reads the featurematrix, does the machine learning, creates models, uses them to predict every trip, makes submission file
-Note: you can change the logistic regression parameter by changing the lg.trainModel line.
-I didn't include this in the function parameters because it already had a lot of function parameters,
-but feel free to change that line and see what happens to the results
+input: 
+  featureMatrixPath: The folder containing the features for every driver
+  outputSubmissionPath: The location where the submissionfile should be generated
+  trainFakeTrips: The number of fake trips to use for training the model. The feature matrix should have at least this many fake trips in it
+  digits: the number of digits the submission file should have. Example, if digits = 3, the submission probablity looks like "0.123"
+  foldsize: the number of trips to exclude in training, for example, if foldsize = 10, we train on 190 positive trips and then classify the other 10
+  the number of folds is 200 / foldsize, so it must divide evenly. The runtime is linear in foldsize: twice as many folds means twice the runtime
+output:
+  importances: the importances of every feature, for every driver. This is the direct output from the random forest classifier
 """
-def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips = 200, trainFakeTrips = 200, digits = 5):
+def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainFakeTrips = 200, digits = 5, foldsize = 10):
     #Read Feature Matrix
     featureMatrix = readFeatureMatrix.totalFeatureMatrix(featureMatrixPath)
 
-    #ShortCut
-    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features1000.npy')
-    #np.save('D:\\Documents\\Data\\MLiP\\features1000', featureMatrix)
+    #ShortCut, to make loading faster, change the path if this is used.
+    #featureMatrix = np.load('D:\\Documents\\Data\\MLiP\\features.npy')
+    #np.save('D:\\Documents\\Data\\MLiP\\features', featureMatrix)
     
     print(np.shape(featureMatrix))
 
     #some features that are not very informative, so they are ignored
     featureMatrix = np.delete(featureMatrix,  [17, 39, 42, 46, 49, 52, 53, 85, 86, 87, 126, 138, 144, 148], 0 )  
     
+    #Get the driver numbers as the names of the csv files in the feature matrix path
     drivernrs = readFeatureMatrix.getdrivernrs(featureMatrixPath)
     print('Done Reading Feature matrix!')
     print(np.shape(featureMatrix))
-    
+     
     numFeat, _,numDrivers = np.shape(featureMatrix)
     numTrips = 200 #The number of trips to make the submission out of, always 200
-    importances = np.zeros((numFeat, numDrivers))
+    numfolds = float(numTrips/foldsize) #the number of folds that will be made, aka the number of models per driver
+    importances = np.zeros((numFeat, numDrivers)) #Storage for feature importances
     
-    #Train and immediately predict all trips from a single driver, one by one
+    #The probabilities that a trip belongs to a driver
     probabilities = np.zeros((numTrips, 2, numDrivers))
-    for i in range(numDrivers):
-        trainTrips = np.transpose(featureMatrix[:,:,i])
+    
+    for i in range(numDrivers): 
+        #First get the trainingtrips from the featurematrix. It is assumed that the real trips come first
+        trainTrips = np.transpose(featureMatrix[:,:(numTrips+trainFakeTrips),i])
         realTrips = trainTrips[:numTrips,:]
-        trainLabels = np.hstack((np.ones(trainRealTrips), np.zeros(trainFakeTrips)))
-
-        model = learn.trainModel(trainTrips, trainLabels, criterion = 'entropy', n_trees = 300, n_jobs = -1)        
-        importances[:,i] = model.feature_importances_  
+        trainLabels = np.hstack((np.ones(numTrips-foldsize), np.zeros(trainFakeTrips)))        
+     
+        #Training the model for each fold
+        for b, e in [(k, k+foldsize) for k in np.arange(0,numTrips,foldsize)]:
+            testIndex = np.arange(b, e)
+            trainIndex = np.hstack((np.arange(0, b), np.arange(e, (numTrips+trainFakeTrips))))
+            
+            #Train the model, then predict the classes for that model
+            model = learn.trainModel(trainTrips[trainIndex], trainLabels, criterion = 'entropy', n_trees = 300, n_jobs = -1) 
+            #Keep track of the importance of each feature for this driver
+            importances[:,i] = importances[:,i] +  np.divide(model.feature_importances_, numfolds)
         
-        tempprobs = learn.predictClass(model, realTrips)
-        probabilities[:,:,i] = np.transpose(np.vstack((np.arange(1,numTrips+1), tempprobs)))
+            tempprobs = learn.predictClass(model, realTrips[testIndex])
+            
+            #Append the tripnrs, then add to probability table
+            probabilities[testIndex,:,i] = np.transpose(np.vstack((testIndex+1, tempprobs)))
 
-        if i%10 == 0:
+        #Progress report, it's so slow that we give a report every driver
+        if i%1 == 0:
             print("Done learning driver " + `i`)
+        #Appending the output to a file. This is reccomended when doing a long calculation because you can halt
+        #the computation and still have the results for the drivers so far, but it's not needed.
+        #CreateSubmission.appendProbabilities(outputSubmissionPath, drivernrs[i], probabilities[:,:,i],'%0.' + `digits` + 'f')
     print('Done calculating probabilities!')
     
     #Makes submission file
@@ -92,15 +84,14 @@ def makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips
     return importances
         
 if __name__ == '__main__':
-    #print(np.vstack((np.arange(5), np.array([0.3,0.2,0.1,0.8,0.9]))))
+    datapath = 'D:\\Documents\\Data\\MLiP\\' #The path with the features, change on your pc
     
-    featureMatrixPath = 'D:\\Documents\\Data\\MLiP\\features1000'
-    outputSubmissionPath = 'D:\\Documents\\Data\\MLiP\\submission1000.csv'
-    trainRealTrips = 200
-    trainFakeTrips = 1000 #number of fake trips
-    normalize = False
-    significantdigits = 5
-    makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainRealTrips, trainFakeTrips, significantdigits)
+    featureMatrixPath = datapath + 'features1000'
+    outputSubmissionPath = datapath + 'submission.csv'
+    trainFakeTrips = 400 #number of fake trips, change between 200 and 1000. For random forest, 400 seems to work the best
+    significantdigits = 5 #number of digits in the submission file. needs to be at least 3 for good precision
+    foldsize = 10
+    makeSubmissionScript(featureMatrixPath, outputSubmissionPath, trainFakeTrips, significantdigits, foldsize)
     
     #zip the submission, makes it ~3x smaller
     zf = zipfile.ZipFile(outputSubmissionPath[:-4] + '.zip', mode='w')

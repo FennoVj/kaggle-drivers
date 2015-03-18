@@ -1,15 +1,18 @@
 """
 Created on Sat Mar 07 13:05:04 2015
 
-@author: Fenno
+@author: Team Mavericks
 """
 import numpy as np
-
-#from simplePyprocessor import trip
 
 """
 Threshold Feature
 Takes only elements that exceed threshold, and does an operation on them to get final feature
+input:
+  array: the input array
+  operation: operation to perform on the elements that exceed the threshold
+  threshold: the threshold
+  greater: wether the elements have to be greater than the threshold (true) or smaller (false)
 """
 def thF(array, operation = np.mean, threshold = 0, greater = True):
     values = array[(array > threshold)] if greater else array[(array < threshold)]
@@ -28,8 +31,9 @@ def coF(array, normalize = True):
 """
 Makes it so you can safely do operations like np.max, np.min, np.mean, etc, 
 when you don't know if the array is empty or not.
+If the array is empty, returns a default value (0 by default)
 """
-def safe(array, operation, default = 0):
+def safe(array, operation, default = 0.0):
     if len(array) == 0:
         return default
     return operation(array)
@@ -46,7 +50,21 @@ def countStreak(array, value=True):
     if firstval == value:
         return streaklengths[::2]
     return streaklengths[1::2]
-    
+
+"""
+Returns the lengths of streaks, same as the function above.
+However, instead of the length in the array, returns the length in the trip
+For example, if there is a streak from time 100 and time 110, and you drive 10 meters in that time,
+then 10 will appear in the output array
+input:
+   array: the input array
+   cumdist: the cumulative distance of the trip, must be same length as array
+   value: wether to count streaks of false or true
+   endCond: a boolean condition that must hold at the final element of the streak
+     if the condition does not hold, the streak will be ignored. This is a boolean array, with
+     true implying that the condition holds at that time, and false implying it doesn't
+     must be same length as array and cumdist
+"""
 def lengthOfStreaks(array, cumdist, value=True, endCond = None):
     if endCond is None:
         endCond = np.ones(len(array))
@@ -67,7 +85,7 @@ def lengthOfStreaks(array, cumdist, value=True, endCond = None):
 
 """
 Computes onicescu energy
-It was the idea of a guy online who said it was an insane feature, so don't blame me
+This is an idea from the kaggle forums, so no in-depth documentation is given here
 """    
 def onicescu(attr):
     b, e = np.histogram(attr)
@@ -77,20 +95,14 @@ def onicescu(attr):
     result = np.sum(probs**2.0)
     del b, e, probs
     return result
-    
-#Used features: n, s, t, v, a
 
-#np.seterr(divide = 'ignore')
 
 #Basic Features
 total_time = lambda trip: trip.n
 total_distance = lambda trip: np.sum(trip.dist)
 straight_distance = lambda trip: np.hypot(trip[-1,0], trip[-1,1])
 straightness = lambda trip: np.divide(float(straight_distance(trip)), float(total_distance(trip)))
-
-
 acceleration_to_dist = lambda trip: np.sum(trip.a**2)
-
 dist_excl_hyperjump = lambda maxdist: lambda trip: float(np.sum(trip.dist[trip.dist < maxdist])) #sample: 80
 
 #Hue's ideas + enhancements by Fenno
@@ -138,7 +150,6 @@ mean_y = lambda trip: np.mean(trip.normY)
 std_x = lambda trip: np.std(trip.normX)
 std_y = lambda trip: np.std(trip.normY)
 std_phi = lambda trip: np.std(trip.normphi)
-
 
 #Hue new features
 #proportion_constant_speed_time  sample threshold = 1 , corresponding to 3.6 km/h different
@@ -213,11 +224,16 @@ mean_velocity_excluding_stop = lambda threshold: lambda trip: safe(trip.v[trip.v
 #saturday night feature time
 num_acc_dec_changes = lambda trip: coF(np.diff(trip.a > 0))
 num_acc_dec_changes_distance = lambda trip: np.divide(coF(np.diff(trip.a > 0), False), total_distance(trip))
+
 np.seterr(divide='ignore', invalid='ignore')
+#The mean curvature involves a lot of divion by 0, so we ignore divion by zero
+#This is kind of dangerous since it also ignored other features dividing by zero, but the other features
+#have been tested to not give any errors
 mean_curvature = lambda trip: np.mean(np.divide((trip.dx * trip.ddx) - (trip.dy*trip.ddx), (trip.dx**2.0 + trip.dy**2.0)**1.5))
+
 num_acc_dec_changes_th = lambda threshold: lambda trip: np.count_nonzero(np.logical_and(trip.a[:-1]>=0,trip.a[1:]<=threshold))
 
-#crazy guy online features
+#feature ideas from kaggle forums
 vel_squared = lambda trip: np.mean(trip.dist)**2.0
 vel_cubed = lambda trip: np.mean(trip.dist)**3.0
 onicescu_speed = lambda trip: onicescu(trip.v)
@@ -357,14 +373,7 @@ features = [total_time,
 
 
 if __name__=='__main__':
-    #trippath = 'D:\\Documents\\Data\\MLiP\\drivers\\1\\1.csv'
-    #trip = trip(trippath)
-    #samplefeatures = [total_distance,  total_standstill_time(0.1)]
-    #output = [float(f(trip)) for f in samplefeatures]
-    #print(output)
     print(len(features))
-    #print dist_excl_hyperjump(80)(trip)
-    #print(np.sort(trip.a))
 
     x = np.array([False, True, True, True, False, True])
     cumdist = np.array([0,2,3,4,5,6])
